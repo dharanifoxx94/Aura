@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "psie"
+name = "aura"
 version = "1.4.1"
 description = "Persistent Scenario Intelligence Engine — multi‑agent simulation with continuous self‑learning"
 readme = "README.md"
@@ -32,7 +32,7 @@ dev = [
 ]
 
 [project.scripts]
-psie = "psie.cli:main"
+aura = "psie.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
