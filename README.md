@@ -59,32 +59,58 @@ pip install -e ".[dev]"
    eidolon-vault run --provider ollama --model llama3.2:3b --text "Your scenario here"
    ```
 
-## 🚀 Local-First Mode (Ollama)
+## Local-First Mode (Ollama)
+
+You can run eidolon-vault completely locally using [Ollama](https://ollama.com/).
+
+First, pull a small, efficient model:
+
+```bash
+ollama pull llama3.2:3b
+```
+
+Then run eidolon-vault with Ollama as the provider:
+
 ```bash
 eidolon-vault run --provider ollama --model llama3.2:3b
 ```
 
-## 🧠 Persistence & Memory
-Agents now have long-term memory using SQLite + ChromaDB.
+## Persistence & Memory
 
-## 🎭 Demo: Consciousness Debate
+Agents now support **long-term memory** using a combination of **SQLite** and **ChromaDB**.
+
+- Each agent can be initialized with a dedicated `EidolonMemory` instance.
+- Interactions can be stored and later retrieved as “recent memories”.
+- Memory data is stored under a local `data/` directory, so it stays on your machine.
+
+## Demo: Consciousness Debate
+
+ A built-in demo simulates a multi-day debate between two agents:
+
 ```bash
 eidolon-vault demo consciousness
 ```
-Runs 10 simulated days of debate and generates a trajectory report.
+
+This will:
+
+- Run 10 simulated “days” of discussion between an **Optimist** and a **Skeptic** agent.
+- Use persistence so each agent can build on previous days’ memories.
+- Generate a trajectory report at:
+
+  ```text
+  demo/trajectory_report.md
+  ```
 
 ## Performance on Old Hardware
-Tested on 2015 Dell E5450 (i5-5300U, 16GB RAM) — runs smoothly with gemma2:2b or llama3.2:3b.
 
-## 📂 Project Structure
+This project is designed to be usable on older laptops and desktops.
 
-- `eidolon-vault/` - Core engine logic and agent controllers.
-- `tests/` - Robust test suite for reliability.
-- `agent_personas.yaml` - The blueprint for your simulation actors.
+Example tested configuration:
 
-## 📄 License
+- **Machine:** 2015 Dell E5450  
+- **CPU:** Intel i5-5300U  
+- **RAM:** 16GB  
+- **Mode:** Offline / Local-first  
+- **Models:** `gemma2:2b` or `llama3.2:3b` (via Ollama)
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
----
-*Built with ❤️ for the future of agentic intelligence.*
+On this hardware, the system runs smoothly in local-first mode when using small models like `gemma2:2b` or `llama3.2:3b`.

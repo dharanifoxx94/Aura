@@ -1,11 +1,4 @@
-"""
-Eidolon Vault — Configuration Loader
-============================
-Thread-safe singleton with validation and directory creation.
-
-FIX: _default_config_path() resolves Path.home() at call time (not import
-time) so test fixtures that patch Path.home() are respected by load_config().
-"""
+# eidolon_vault/config.py
 from __future__ import annotations
 import copy, logging, os, threading
 from pathlib import Path
@@ -55,8 +48,6 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "retry_attempts": 2,
         "retry_delay_s": 3.0,
         "request_timeout": DEFAULT_LLM_TIMEOUT,
-        # Per-task token limits — override global max_tokens per task type.
-        # report_generate needs 4096 for Gemini 2.5 Flash thinking overhead.
         "task_max_tokens": {
             "graph_build":      1024,
             "persona_generate": 1024,
@@ -67,7 +58,6 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "summarise":       512,
             "consolidate":     512,
         },
-        # Per-task timeout overrides in seconds (inherits request_timeout if absent).
         "task_timeouts": {
             "agent_action":    120,
             "fact_extract":    180,
@@ -81,7 +71,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "max_turns": 15,
         "sensitive_mode": False,
         "persona_anchor_interval": 3,
-        "max_injected_items": 6,  # Configurable injection limit
+        "max_injected_items": 6,
     },
     "graph":  {"backend": "custom", "storage_dir": "~/.eidolon_vault/graphs", "max_entities": 20},
     "memory": {"db_path": "~/.eidolon_vault/eidolon_vault_memory.db", "max_episodic_per_run": 50,
@@ -174,18 +164,7 @@ def _apply_env_overrides(cfg: Dict[str, Any]) -> None:
 
 
 def load_config(config_path=None) -> Dict[str, Any]:
-    """Load, merge, expand, and validate the configuration.
-
-    Priority (lowest to highest):
-      1. DEFAULT_CONFIG
-      2. .env (via load_dotenv)
-      3. ~/.eidolon_vault/config.yaml  (resolved at call time via _default_config_path)
-      4. ./config.yaml
-      5. explicit config_path argument
-      6. EIDOLON_VAULT_* environment variables
-    """
     if load_dotenv:
-        # Load .env from current directory or recurse up
         load_dotenv()
         
     cfg = copy.deepcopy(DEFAULT_CONFIG)

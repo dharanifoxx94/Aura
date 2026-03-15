@@ -1,15 +1,7 @@
-"""
-Eidolon Vault — CLI
-===========
-Click‑based command‑line interface with all commands.
-"""
-
-from __future__ import annotations
-
+# eidolon_vault/cli.py
 import logging
 import sys
 from pathlib import Path
-
 import click
 
 import eidolon_vault as _eidolon_vault_pkg
@@ -37,10 +29,6 @@ def cli(verbose: bool, json_log: bool) -> None:
     """Eidolon Vault — Predict outcomes through multi‑agent simulation."""
     setup_logging(verbose=verbose, json_output=json_log)
 
-
-# ──────────────────────────────────────────────────────────────
-# eidolon_vault run
-# ──────────────────────────────────────────────────────────────
 
 @cli.command()
 @click.option("--text",      "-t", default=None, help="Scenario text (inline)")
@@ -140,24 +128,14 @@ def run(
         sys.exit(130)
     except EidolonVaultError as exc:
         click.echo(f"\n❌ Simulation failed: {exc}", err=True)
-        if click.get_current_context().params.get("verbose"):
-            import traceback
-            traceback.print_exc()
         sys.exit(1)
     except Exception as exc:
         click.echo(f"\n❌ Unexpected error: {exc}", err=True)
-        if click.get_current_context().params.get("verbose"):
-            import traceback
-            traceback.print_exc()
         sys.exit(1)
 
     rendered = engine.report_generator.render_text(report, sim_log)
     click.echo("\n" + rendered)
 
-
-# ──────────────────────────────────────────────────────────────
-# eidolon_vault history
-# ──────────────────────────────────────────────────────────────
 
 @cli.command()
 @click.option("--limit",  default=20, help="Number of past runs to show")
@@ -187,10 +165,6 @@ def history(limit: int, config: str | None) -> None:
         last = r["last_turn"][:19] if r["last_turn"] else "unknown"
         click.echo(f"{r['run_id']:<15} {r['scenario_hash']:<18} {r['turns']:<8} {last}")
 
-
-# ──────────────────────────────────────────────────────────────
-# eidolon_vault skills
-# ──────────────────────────────────────────────────────────────
 
 @cli.group()
 def skills() -> None:
@@ -247,50 +221,6 @@ def skills_delete(skill_id: int, config: str | None) -> None:
     click.echo(f"Skill {skill_id} deleted.")
 
 
-@skills.command(name="add")
-@click.option("--name",          prompt="Skill name")
-@click.option("--trigger",       prompt="Trigger keyword/phrase")
-@click.option("--archetype",     default="*", prompt="Archetype filter (* for all)")
-@click.option("--scenario-type", default="*", prompt="Scenario type (* for all)")
-@click.option("--instruction",   prompt="Instruction (the behavioural guideline)")
-@click.option("--config",        default=None, type=click.Path())
-def skills_add(
-    name: str,
-    trigger: str,
-    archetype: str,
-    scenario_type: str,
-    instruction: str,
-    config: str | None,
-) -> None:
-    """Manually add a skill to the bank."""
-    from eidolon_vault.config import get_config, ensure_dirs
-    from eidolon_vault.skill_bank import SkillBank
-    from eidolon_vault.models import Skill
-
-    try:
-        cfg = get_config(config)
-    except EidolonVaultError as e:
-        click.echo(f"Configuration error: {e}", err=True)
-        sys.exit(1)
-
-    ensure_dirs(cfg)
-    bank = SkillBank(cfg)
-    skill = Skill(
-        skill_id=None,
-        name=name,
-        trigger=trigger,
-        archetype_filter=archetype,
-        scenario_type=scenario_type,
-        instruction=instruction,
-    )
-    new_id = bank.add_skill(skill)
-    click.echo(f"✓ Skill added with ID {new_id}")
-
-
-# ──────────────────────────────────────────────────────────────
-# eidolon_vault cost
-# ──────────────────────────────────────────────────────────────
-
 @cli.command()
 @click.option("--config", default=None, type=click.Path())
 def cost(config: str | None) -> None:
@@ -320,10 +250,6 @@ def cost(config: str | None) -> None:
     click.echo(f"\nTotal tokens logged: {total:,}")
 
 
-# ──────────────────────────────────────────────────────────────
-# eidolon_vault init
-# ──────────────────────────────────────────────────────────────
-
 @cli.command()
 def init() -> None:
     """Create a default config file at ~/.eidolon_vault/config.yaml and set up directories."""
@@ -337,20 +263,18 @@ def init() -> None:
 
     default_yaml = """\
 # Eidolon Vault Configuration
-# Edit API keys here or set them as environment variables.
-
 llm:
   provider: ollama
-  model: llama3.2:3b
+  model: gemma3:4b
   providers:
     ollama:
       base_url: "http://localhost:11434"
     groq:
-      api_key: ""   # or set GROQ_API_KEY env var  — free at console.groq.com
+      api_key: ""
     gemini:
-      api_key: ""   # or set GEMINI_API_KEY env var — free at ai.google.dev
+      api_key: ""
     openrouter:
-      api_key: ""   # or set OPENROUTER_API_KEY env var
+      api_key: ""
 
   retry_attempts: 2
   retry_delay_s: 3.0
@@ -359,7 +283,7 @@ llm:
 simulation:
   max_agents: 8
   max_turns: 12
-  sensitive_mode: false   # true = local inference only, no data leaves machine
+  sensitive_mode: false
 
 graph:
   max_entities: 15
@@ -393,24 +317,20 @@ input:
     click.echo("  3. Run: eidolon_vault run --text 'Your scenario here' --type job_hunt")
 
 
-# ──────────────────────────────────────────────────────────────
-# eidolon_vault demo
-# ──────────────────────────────────────────────────────────────
-
+# Step 5: Add CLI command for the consciousness demo
 @cli.group()
 def demo() -> None:
     """Run built-in demos."""
+
 
 @demo.command(name="consciousness")
 @click.option("--days", default=10, help="Number of simulated days")
 def demo_consciousness(days: int) -> None:
     """Run the consciousness debate demo."""
+    # Importing inside the function as requested
     from demo.consciousness_debate import run_consciousness_debate
     click.echo(f"Starting consciousness debate demo for {days} days...")
     run_consciousness_debate(days=days)
-
-
-from eidolon_vault import cli_extension
 
 
 def main() -> None:
