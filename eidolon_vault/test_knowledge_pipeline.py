@@ -24,13 +24,13 @@ import pytest
 @pytest.fixture
 def worker_setup(minimal_cfg, mock_gateway):
     """
-    Build a PSIEEngine (from_config) wired to mock_gateway, then return both
+    Build a EidolonVaultEngine (from_config) wired to mock_gateway, then return both
     the engine and a KnowledgeWorker instance.
     """
-    from psie.engine import PSIEEngine
-    from psie.knowledge_worker import KnowledgeWorker
+    from eidolon_vault.engine import EidolonVaultEngine
+    from eidolon_vault.knowledge_worker import KnowledgeWorker
 
-    engine = PSIEEngine.from_config(minimal_cfg)
+    engine = EidolonVaultEngine.from_config(minimal_cfg)
     # Replace the real gateway with the mock so no network/LLM calls are made.
     engine.gateway = mock_gateway
     engine.simulation_runner.gateway = mock_gateway
@@ -58,29 +58,29 @@ def _make_fact_response(facts: list | None = None) -> str:
 
 class TestContentFeeder:
     def test_ingest_text_returns_scenario_context(self):
-        from psie.feeder import ContentFeeder, ingest
+        from eidolon_vault.feeder import ContentFeeder, ingest
         ctx = ingest("Alice and Bob are negotiating a contract.", source_type="text")
         assert ctx.raw_text
         assert ctx.source_type == "text"
 
     def test_auto_detect_text(self):
-        from psie.feeder import ContentFeeder
+        from eidolon_vault.feeder import ContentFeeder
         feeder = ContentFeeder()
         ctx = feeder.ingest("plain scenario text without a URL")
         assert ctx.source_type == "text"
 
     def test_auto_detect_url_pattern(self):
         """_detect_type should route http:// to url, not rss."""
-        from psie.feeder import _detect_type
+        from eidolon_vault.feeder import _detect_type
         assert _detect_type("https://example.com/article") == "url"
 
     def test_auto_detect_rss_pattern(self):
-        from psie.feeder import _detect_type
+        from eidolon_vault.feeder import _detect_type
         assert _detect_type("https://example.com/feed") == "rss"
         assert _detect_type("https://example.com/rss.xml") == "rss"
 
     def test_hash_is_deterministic(self):
-        from psie.feeder import ContentFeeder
+        from eidolon_vault.feeder import ContentFeeder
         feeder = ContentFeeder()
         ctx = feeder.ingest("Stable scenario text.", source_type="text")
         h1 = feeder.hash_for(ctx)
@@ -100,7 +100,7 @@ class TestContentFeeder:
             ],
         )
         monkeypatch.setattr("feedparser.parse", lambda _: fake_feed)
-        from psie.feeder import ContentFeeder
+        from eidolon_vault.feeder import ContentFeeder
         feeder = ContentFeeder(gateway=None)
         ctx = feeder.ingest_rss("https://example.com/feed.xml", max_items=2)
         assert "Item 1" in ctx.raw_text
@@ -119,7 +119,7 @@ class TestContentFeeder:
         monkeypatch.setattr("feedparser.parse", lambda _: fake_feed)
         mock_gateway.complete.return_value = "Condensed scenario about chips."
 
-        from psie.feeder import ContentFeeder
+        from eidolon_vault.feeder import ContentFeeder
         feeder = ContentFeeder(gateway=mock_gateway)
         ctx = feeder.ingest_rss("https://example.com/feed.xml", max_items=1)
 
@@ -128,10 +128,10 @@ class TestContentFeeder:
 
     def test_ingest_rss_empty_feed_raises(self, monkeypatch):
         import types
-        from psie.exceptions import InputError
+        from eidolon_vault.exceptions import InputError
         fake_feed = types.SimpleNamespace(bozo=False, feed=types.SimpleNamespace(title=""), entries=[])
         monkeypatch.setattr("feedparser.parse", lambda _: fake_feed)
-        from psie.feeder import ContentFeeder
+        from eidolon_vault.feeder import ContentFeeder
         feeder = ContentFeeder()
         with pytest.raises(InputError, match="no entries"):
             feeder.ingest_rss("https://example.com/empty.xml")
@@ -152,7 +152,7 @@ class TestPersonaLoading:
         assert "The Archivist" in names
 
     def test_personas_are_valid_agent_personas(self, worker_setup):
-        from psie.models import AgentPersona
+        from eidolon_vault.models import AgentPersona
         _, worker = worker_setup
         for p in worker.load_personas():
             assert isinstance(p, AgentPersona)
@@ -168,7 +168,7 @@ class TestPersonaLoading:
 
     def test_missing_yaml_raises(self, worker_setup, tmp_path):
         engine, _ = worker_setup
-        from psie.knowledge_worker import KnowledgeWorker
+        from eidolon_vault.knowledge_worker import KnowledgeWorker
         bad_worker = KnowledgeWorker(engine, personas_path=str(tmp_path / "nope.yaml"))
         with pytest.raises(FileNotFoundError):
             bad_worker.load_personas()
@@ -177,7 +177,7 @@ class TestPersonaLoading:
         engine, _ = worker_setup
         bad_yaml = tmp_path / "bad.yaml"
         bad_yaml.write_text("personas: not_a_list\n")
-        from psie.knowledge_worker import KnowledgeWorker
+        from eidolon_vault.knowledge_worker import KnowledgeWorker
         bad_worker = KnowledgeWorker(engine, personas_path=str(bad_yaml))
         with pytest.raises(ValueError, match="empty"):
             bad_worker.load_personas()
@@ -232,7 +232,7 @@ class TestKnowledgeWorker:
         assert result["run_id"] in run_ids
 
     def test_learn_from_context_accepts_scenario_context(self, worker_setup):
-        from psie.feeder import ingest
+        from eidolon_vault.feeder import ingest
         engine, worker = worker_setup
         self._configure_mock(engine.gateway)
 
@@ -272,7 +272,7 @@ class TestKnowledgeWorker:
 
 class TestMemoryConsolidator:
     def _insert_facts(self, cfg, rows):
-        from psie.db import db_connect
+        from eidolon_vault.db import db_connect
         from pathlib import Path
         import os
         db_path = str(Path(os.path.expanduser(cfg["memory"]["db_path"])))
@@ -285,8 +285,8 @@ class TestMemoryConsolidator:
             )
 
     def test_summary_returns_counts(self, minimal_cfg, mock_gateway):
-        from psie.memory_store import MemoryStore
-        from psie.memory_consolidator import MemoryConsolidator
+        from eidolon_vault.memory_store import MemoryStore
+        from eidolon_vault.memory_consolidator import MemoryConsolidator
 
         MemoryStore(minimal_cfg)  # ensure schema exists
         self._insert_facts(minimal_cfg, [
@@ -299,8 +299,8 @@ class TestMemoryConsolidator:
         assert stats["distinct_subjects"] == 1
 
     def test_find_contradictions_calls_llm(self, minimal_cfg, mock_gateway):
-        from psie.memory_store import MemoryStore
-        from psie.memory_consolidator import MemoryConsolidator
+        from eidolon_vault.memory_store import MemoryStore
+        from eidolon_vault.memory_consolidator import MemoryConsolidator
 
         MemoryStore(minimal_cfg)
         self._insert_facts(minimal_cfg, [
@@ -318,9 +318,9 @@ class TestMemoryConsolidator:
         assert len(delete_suggestions) >= 1
 
     def test_prune_removes_rows(self, minimal_cfg, mock_gateway):
-        from psie.memory_store import MemoryStore
-        from psie.memory_consolidator import MemoryConsolidator
-        from psie.db import db_connect
+        from eidolon_vault.memory_store import MemoryStore
+        from eidolon_vault.memory_consolidator import MemoryConsolidator
+        from eidolon_vault.db import db_connect
         import os
 
         MemoryStore(minimal_cfg)

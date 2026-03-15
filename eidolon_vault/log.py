@@ -1,5 +1,5 @@
 """
-PSIE — Structured Logging
+Eidolon Vault — Structured Logging
 ==========================
 Configures JSON logging with context injection and redaction.
 """

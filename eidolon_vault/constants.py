@@ -1,5 +1,5 @@
 """
-PSIE — Shared Constants
+Eidolon Vault — Shared Constants
 =======================
 Centralised constants used across multiple modules.
 """

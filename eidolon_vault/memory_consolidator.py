@@ -1,5 +1,5 @@
 """
-PSIE — Memory Consolidator
+Eidolon Vault — Memory Consolidator
 ===========================
 Maintenance utility that scans the ``facts`` table for potentially contradictory
 entries and suggests (or applies) targeted prunes.
@@ -16,9 +16,9 @@ How it works
 
 Usage::
 
-    from psie.config import get_config
-    from psie.llm_gateway import LLMGateway
-    from psie.memory_consolidator import MemoryConsolidator
+    from eidolon_vault.config import get_config
+    from eidolon_vault.llm_gateway import LLMGateway
+    from eidolon_vault.memory_consolidator import MemoryConsolidator
 
     cfg = get_config()
     gw  = LLMGateway(cfg)
@@ -83,12 +83,12 @@ Return only the JSON object described in the system prompt."""
 
 class MemoryConsolidator:
     """
-    Scan the PSIE memory store for contradictory facts and suggest/apply prunes.
+    Scan the Eidolon Vault memory store for contradictory facts and suggest/apply prunes.
 
     Parameters
     ----------
     cfg:
-        PSIE config dict (needs ``memory.db_path``).
+        Eidolon Vault config dict (needs ``memory.db_path``).
     gateway:
         LLMGateway used for contradiction judgement.
     """

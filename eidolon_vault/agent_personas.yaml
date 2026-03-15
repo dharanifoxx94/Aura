@@ -1,4 +1,4 @@
-# PSIE — Static Agent Personas for the Knowledge Ingestion Pipeline
+# Eidolon Vault — Static Agent Personas for the Knowledge Ingestion Pipeline
 #
 # These personas are loaded by KnowledgeWorker instead of dynamically generating
 # agents from the scenario graph. Their purpose is to cross-examine ingested content

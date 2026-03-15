@@ -1,5 +1,5 @@
 """
-PSIE — Shared Utilities
+Eidolon Vault — Shared Utilities
 =======================
 Centralised helpers for JSON parsing, text sanitisation, FTS5 safety,
 and input validation.

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aura"
+name = "eidolon-vault"
 version = "1.4.1"
 description = "Persistent Scenario Intelligence Engine — multi‑agent simulation with continuous self‑learning"
 readme = "README.md"
@@ -32,11 +32,11 @@ dev = [
 ]
 
 [project.scripts]
-aura = "psie.cli:main"
+eidolon-vault = "eidolon_vault.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["psie*"]
+include = ["eidolon_vault*"]
 
 [tool.ruff]
 line-length = 100

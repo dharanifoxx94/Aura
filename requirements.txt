@@ -1,4 +1,4 @@
-# PSIE v1.4.1 — Core Dependencies
+# Eidolon Vault v1.4.1 — Core Dependencies
 click>=8.1.7,<9
 networkx>=3.2.1,<4
 pyyaml>=6.0.1,<7

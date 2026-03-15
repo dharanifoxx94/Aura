@@ -1,5 +1,5 @@
 """
-PSIE — CLI
+Eidolon Vault — CLI
 ===========
 Click‑based command‑line interface with all commands.
 """
@@ -12,9 +12,9 @@ from pathlib import Path
 
 import click
 
-import psie as _psie_pkg
-from psie.log import setup_logging
-from psie.exceptions import PSIEError
+import eidolon_vault as _eidolon_vault_pkg
+from eidolon_vault.log import setup_logging
+from eidolon_vault.exceptions import EidolonVaultError
 
 BANNER = r"""
  ____  ____ ___ _____
@@ -24,22 +24,22 @@ BANNER = r"""
 |_|   |____/___|_____|
 
 Persistent Scenario Intelligence Engine v{version}
-""".format(version=_psie_pkg.__version__)
+""".format(version=_eidolon_vault_pkg.__version__)
 
 SCENARIO_TYPES = ["job_hunt", "business_decision", "negotiation", "relationship", "general"]
 
 
 @click.group()
-@click.version_option(version=_psie_pkg.__version__, prog_name="psie")
+@click.version_option(version=_eidolon_vault_pkg.__version__, prog_name="eidolon_vault")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 @click.option("--json-log", is_flag=True, help="Output logs in JSON format")
 def cli(verbose: bool, json_log: bool) -> None:
-    """PSIE — Predict outcomes through multi‑agent simulation."""
+    """Eidolon Vault — Predict outcomes through multi‑agent simulation."""
     setup_logging(verbose=verbose, json_output=json_log)
 
 
 # ──────────────────────────────────────────────────────────────
-# psie run
+# eidolon_vault run
 # ──────────────────────────────────────────────────────────────
 
 @cli.command()
@@ -86,15 +86,15 @@ def run(
         click.echo(BANNER)
 
     try:
-        from psie.config import get_config, ensure_dirs
-        from psie.engine import PSIEEngine
+        from eidolon_vault.config import get_config, ensure_dirs
+        from eidolon_vault.engine import EidolonVaultEngine
     except ImportError as e:
-        click.echo(f"Error importing PSIE: {e}\nRun: pip install -e .", err=True)
+        click.echo(f"Error importing Eidolon Vault: {e}\nRun: pip install -e .", err=True)
         sys.exit(1)
 
     try:
         cfg = get_config(config)
-    except PSIEError as e:
+    except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
 
@@ -103,7 +103,7 @@ def run(
         if not quiet:
             click.echo("🔒 Sensitive mode active — local inference only, no data leaves this machine.\n")
 
-    engine = PSIEEngine.from_config(cfg)
+    engine = EidolonVaultEngine.from_config(cfg)
 
     def _progress(msg: str) -> None:
         if not quiet:
@@ -129,7 +129,7 @@ def run(
     except KeyboardInterrupt:
         click.echo("\n⚠ Interrupted by user.", err=True)
         sys.exit(130)
-    except PSIEError as exc:
+    except EidolonVaultError as exc:
         click.echo(f"\n❌ Simulation failed: {exc}", err=True)
         if click.get_current_context().params.get("verbose"):
             import traceback
@@ -147,7 +147,7 @@ def run(
 
 
 # ──────────────────────────────────────────────────────────────
-# psie history
+# eidolon_vault history
 # ──────────────────────────────────────────────────────────────
 
 @cli.command()
@@ -155,12 +155,12 @@ def run(
 @click.option("--config", default=None, type=click.Path())
 def history(limit: int, config: str | None) -> None:
     """Show past simulation runs."""
-    from psie.config import get_config, ensure_dirs
-    from psie.memory_store import MemoryStore
+    from eidolon_vault.config import get_config, ensure_dirs
+    from eidolon_vault.memory_store import MemoryStore
 
     try:
         cfg = get_config(config)
-    except PSIEError as e:
+    except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
 
@@ -180,7 +180,7 @@ def history(limit: int, config: str | None) -> None:
 
 
 # ──────────────────────────────────────────────────────────────
-# psie skills
+# eidolon_vault skills
 # ──────────────────────────────────────────────────────────────
 
 @cli.group()
@@ -192,12 +192,12 @@ def skills() -> None:
 @click.option("--config", default=None, type=click.Path())
 def skills_list(config: str | None) -> None:
     """List all learned skills."""
-    from psie.config import get_config, ensure_dirs
-    from psie.skill_bank import SkillBank
+    from eidolon_vault.config import get_config, ensure_dirs
+    from eidolon_vault.skill_bank import SkillBank
 
     try:
         cfg = get_config(config)
-    except PSIEError as e:
+    except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
 
@@ -223,12 +223,12 @@ def skills_list(config: str | None) -> None:
 @click.option("--config", default=None, type=click.Path())
 def skills_delete(skill_id: int, config: str | None) -> None:
     """Delete a skill by ID."""
-    from psie.config import get_config, ensure_dirs
-    from psie.skill_bank import SkillBank
+    from eidolon_vault.config import get_config, ensure_dirs
+    from eidolon_vault.skill_bank import SkillBank
 
     try:
         cfg = get_config(config)
-    except PSIEError as e:
+    except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
 
@@ -254,13 +254,13 @@ def skills_add(
     config: str | None,
 ) -> None:
     """Manually add a skill to the bank."""
-    from psie.config import get_config, ensure_dirs
-    from psie.skill_bank import SkillBank
-    from psie.models import Skill
+    from eidolon_vault.config import get_config, ensure_dirs
+    from eidolon_vault.skill_bank import SkillBank
+    from eidolon_vault.models import Skill
 
     try:
         cfg = get_config(config)
-    except PSIEError as e:
+    except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
 
@@ -279,19 +279,19 @@ def skills_add(
 
 
 # ──────────────────────────────────────────────────────────────
-# psie cost
+# eidolon_vault cost
 # ──────────────────────────────────────────────────────────────
 
 @cli.command()
 @click.option("--config", default=None, type=click.Path())
 def cost(config: str | None) -> None:
     """Show recent LLM usage log."""
-    from psie.config import get_config
-    from psie.llm_gateway import LLMGateway
+    from eidolon_vault.config import get_config
+    from eidolon_vault.llm_gateway import LLMGateway
 
     try:
         cfg = get_config(config)
-    except PSIEError as e:
+    except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
 
@@ -312,13 +312,13 @@ def cost(config: str | None) -> None:
 
 
 # ──────────────────────────────────────────────────────────────
-# psie init
+# eidolon_vault init
 # ──────────────────────────────────────────────────────────────
 
 @cli.command()
 def init() -> None:
-    """Create a default config file at ~/.psie/config.yaml and set up directories."""
-    config_dir = Path.home() / ".psie"
+    """Create a default config file at ~/.eidolon_vault/config.yaml and set up directories."""
+    config_dir = Path.home() / ".eidolon_vault"
     config_dir.mkdir(parents=True, exist_ok=True)
     config_path = config_dir / "config.yaml"
 
@@ -327,7 +327,7 @@ def init() -> None:
             return
 
     default_yaml = """\
-# PSIE Configuration
+# Eidolon Vault Configuration
 # Edit API keys here or set them as environment variables.
 
 llm:
@@ -361,7 +361,7 @@ skills:
   top_k_inject: 3
 
 output:
-  reports_dir: "~/psie_reports"
+  reports_dir: "~/eidolon_vault_reports"
 
 input:
   max_file_bytes: 20971520   # 20 MB
@@ -371,15 +371,15 @@ input:
     config_path.write_text(default_yaml, encoding="utf-8")
     click.echo(f"✓ Config created at {config_path}")
 
-    from psie.config import get_config, ensure_dirs
+    from eidolon_vault.config import get_config, ensure_dirs
     cfg = get_config(str(config_path))
     ensure_dirs(cfg)
     click.echo("✓ Runtime directories created.")
 
     click.echo("\nNext steps:")
-    click.echo("  1. Add your API keys to ~/.psie/config.yaml")
+    click.echo("  1. Add your API keys to ~/.eidolon_vault/config.yaml")
     click.echo("  2. Pull an Ollama model: ollama pull gemma3:4b")
-    click.echo("  3. Run: psie run --text 'Your scenario here' --type job_hunt")
+    click.echo("  3. Run: eidolon_vault run --text 'Your scenario here' --type job_hunt")
 
 
 def main() -> None:

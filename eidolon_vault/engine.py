@@ -1,5 +1,5 @@
 """
-PSIE — Engine
+Eidolon Vault — Engine
 ==============
 Top‑level orchestrator that wires all components together.
 """
@@ -20,12 +20,12 @@ from .skill_bank import SkillBank
 from .memory_store import MemoryStore
 from .report_generator import ReportGenerator
 from .constants import ALLOWED_SCENARIO_TYPES
-from .exceptions import PSIEError, InputError
+from .exceptions import EidolonVaultError, InputError
 
 logger = logging.getLogger(__name__)
 
 
-class PSIEEngine:
+class EidolonVaultEngine:
     """
     Persistent Scenario Intelligence Engine — main entry point.
     """
@@ -35,7 +35,7 @@ class PSIEEngine:
         self._init_components()
 
     @classmethod
-    def from_config(cls, cfg: dict) -> "PSIEEngine":
+    def from_config(cls, cfg: dict) -> "EidolonVaultEngine":
         instance = object.__new__(cls)
         instance.cfg = cfg
         instance._init_components()
@@ -173,7 +173,7 @@ class PSIEEngine:
         )
 
         if not personas:
-            raise PSIEError(
+            raise EidolonVaultError(
                 "No personas could be generated. "
                 "Check your scenario text has identifiable stakeholders, "
                 "and verify LLM connectivity."

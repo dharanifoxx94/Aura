@@ -1,5 +1,5 @@
 """
-PSIE — Input Parser
+Eidolon Vault — Input Parser
 ====================
 Normalises raw input (text, URL, PDF, .docx, plain text) into a
 ScenarioContext with added SSRF protection (IP pinning and redirect
@@ -257,7 +257,7 @@ def _fetch_with_requests(
     """
     session = requests.Session()
     session.max_redirects = 0
-    headers = {"User-Agent": "Mozilla/5.0 (PSIE/1.4; +https://github.com/psie)"}
+    headers = {"User-Agent": "Mozilla/5.0 (Eidolon Vault/1.4; +https://github.com/eidolon_vault)"}
 
     current_url = url
     redirect_count = 0
@@ -353,7 +353,7 @@ def _fetch_with_urllib(
     pinned_url = parsed._replace(netloc=new_netloc).geturl()
     req = urllib.request.Request(
         pinned_url,
-        headers={"User-Agent": "Mozilla/5.0 (PSIE/1.4)", "Host": hostname},
+        headers={"User-Agent": "Mozilla/5.0 (Eidolon Vault/1.4)", "Host": hostname},
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:

@@ -1,5 +1,5 @@
 """
-PSIE — Core Data Models
+Eidolon Vault — Core Data Models
 ========================
 Dataclasses shared across all components.
 """

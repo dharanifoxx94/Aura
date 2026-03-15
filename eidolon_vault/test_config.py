@@ -1,20 +1,20 @@
 """
-Tests for psie/config.py
+Tests for eidolon_vault/config.py
 ========================
 
 Root cause of the three recurring failures (now fixed)
 -------------------------------------------------------
-DEFAULT_CONFIG_PATH = Path.home() / ".psie" / "config.yaml"  was evaluated
+DEFAULT_CONFIG_PATH = Path.home() / ".eidolon_vault" / "config.yaml"  was evaluated
 ONCE at module-import time and baked in the developer's real home directory.
-So even though the tests changed CWD and stripped PSIE_* env vars, the real
-~/.psie/config.yaml (which has max_agents=8, request_timeout=120) was always
+So even though the tests changed CWD and stripped EIDOLON_VAULT_* env vars, the real
+~/.eidolon_vault/config.yaml (which has max_agents=8, request_timeout=120) was always
 loaded, overriding DEFAULT_CONFIG values.
 
 The fix:
-  • psie/config.py now calls _default_config_path() (a function) inside
+  • eidolon_vault/config.py now calls _default_config_path() (a function) inside
     load_config() so Path.home() is consulted at call time, not import time.
   • tests/conftest.py patches Path.home() → a fresh empty tmp dir and also
-    cleans PSIE_* env vars before every test (autouse fixture).
+    cleans EIDOLON_VAULT_* env vars before every test (autouse fixture).
 
 This file no longer needs the ``monkeypatch.setattr(os, 'environ', ...)``
 anti-pattern.  That approach replaced os.environ with a plain dict, which
@@ -27,12 +27,12 @@ import os
 import pytest
 from pathlib import Path
 
-from psie.config import (
+from eidolon_vault.config import (
     load_config, get_config, reset_config,
     _deep_merge, _expand_env, validate_config,
     DEFAULT_CONFIG,
 )
-from psie.exceptions import ConfigurationError
+from eidolon_vault.exceptions import ConfigurationError
 
 
 # ── _deep_merge ───────────────────────────────────────────────────────────────
@@ -67,16 +67,16 @@ class TestDeepMerge:
 
 class TestExpandEnv:
     def test_set_var_expands(self, monkeypatch):
-        monkeypatch.setenv("PSIE_TEST_KEY", "hello")
-        assert _expand_env("${PSIE_TEST_KEY}") == "hello"
+        monkeypatch.setenv("EIDOLON_VAULT_TEST_KEY", "hello")
+        assert _expand_env("${EIDOLON_VAULT_TEST_KEY}") == "hello"
 
     def test_unset_var_returns_empty_string(self, monkeypatch):
-        monkeypatch.delenv("PSIE_NONEXISTENT_VAR", raising=False)
-        result = _expand_env("${PSIE_NONEXISTENT_VAR}")
+        monkeypatch.delenv("EIDOLON_VAULT_NONEXISTENT_VAR", raising=False)
+        result = _expand_env("${EIDOLON_VAULT_NONEXISTENT_VAR}")
         assert result == ""   # silent drop — warning logged but no crash
 
     def test_tilde_expanded(self):
-        result = _expand_env("~/psie_reports")
+        result = _expand_env("~/eidolon_vault_reports")
         assert result.startswith("/")
         assert "~" not in result
 
@@ -96,12 +96,12 @@ class TestExpandEnv:
 class TestLoadConfigLayers:
     """
     The original bug: load_config() had a 'break' after the first match,
-    so ~/.psie/config.yaml was silently ignored if ./config.yaml existed.
+    so ~/.eidolon_vault/config.yaml was silently ignored if ./config.yaml existed.
     After the fix, ALL layers are loaded in priority order.
 
     A second independent bug: DEFAULT_CONFIG_PATH was baked in at import time,
-    so even after removing PSIE_* env vars the developer's real
-    ~/.psie/config.yaml was still being read.  The conftest.py isolated_home
+    so even after removing EIDOLON_VAULT_* env vars the developer's real
+    ~/.eidolon_vault/config.yaml was still being read.  The conftest.py isolated_home
     fixture patches Path.home() to a fresh empty directory, preventing this.
     """
 
@@ -134,7 +134,7 @@ class TestLoadConfigLayers:
         """A partial override must NOT wipe out sibling keys.
 
         Previously this asserted 8 == 12 because the developer's
-        ~/.psie/config.yaml (with max_agents=8) was loaded despite the test
+        ~/.eidolon_vault/config.yaml (with max_agents=8) was loaded despite the test
         using a clean env — the path was baked in at import time.
         """
         local = tmp_path / "config.yaml"
@@ -149,7 +149,7 @@ class TestLoadConfigLayers:
         """A malformed YAML layer is skipped; defaults are preserved.
 
         Previously this asserted 120 == 60 because the developer's
-        ~/.psie/config.yaml (with request_timeout=120) was always loaded.
+        ~/.eidolon_vault/config.yaml (with request_timeout=120) was always loaded.
         """
         bad = tmp_path / "config.yaml"
         bad.write_text("llm: [this: is: {bad yaml\n")
@@ -164,22 +164,22 @@ class TestLoadConfigLayers:
         assert cfg["llm"]["request_timeout"]   == DEFAULT_CONFIG["llm"]["request_timeout"]
 
     def test_both_layers_loaded_in_order(self, tmp_path):
-        """Both ~/.psie/config.yaml and ./config.yaml are merged (no early break).
+        """Both ~/.eidolon_vault/config.yaml and ./config.yaml are merged (no early break).
 
         This tests the original 'break' bug: the second layer must be applied
         even though the first already matched.
         """
         fake_home = tmp_path / "fake_home"   # already created by isolated_home
-        psie_dir  = fake_home / ".psie"
-        psie_dir.mkdir(parents=True, exist_ok=True)
-        (psie_dir / "config.yaml").write_text(
+        eidolon_vault_dir  = fake_home / ".eidolon_vault"
+        eidolon_vault_dir.mkdir(parents=True, exist_ok=True)
+        (eidolon_vault_dir / "config.yaml").write_text(
             "simulation:\n  max_agents: 5\n"    # home layer — lower priority
         )
         (tmp_path / "config.yaml").write_text(
             "simulation:\n  max_turns: 7\n"     # local layer — higher priority
         )
         cfg = load_config()
-        assert cfg["simulation"]["max_agents"] == 5   # from ~/.psie/config.yaml
+        assert cfg["simulation"]["max_agents"] == 5   # from ~/.eidolon_vault/config.yaml
         assert cfg["simulation"]["max_turns"]  == 7   # from ./config.yaml
         # Unrelated key from DEFAULT_CONFIG must survive both layers
         assert cfg["llm"]["request_timeout"]   == DEFAULT_CONFIG["llm"]["request_timeout"]
@@ -191,26 +191,26 @@ class TestEnvOverrides:
     """
     These tests use monkeypatch.setenv() / monkeypatch.delenv() rather than
     the anti-pattern of replacing os.environ with a plain dict.
-    The isolated_home fixture already removes all PSIE_* vars before each test.
+    The isolated_home fixture already removes all EIDOLON_VAULT_* vars before each test.
     """
 
-    def test_psie_llm_timeout(self, monkeypatch):
-        monkeypatch.setenv("PSIE_LLM_TIMEOUT", "300")
+    def test_eidolon_vault_llm_timeout(self, monkeypatch):
+        monkeypatch.setenv("EIDOLON_VAULT_LLM_TIMEOUT", "300")
         cfg = load_config()
         assert cfg["llm"]["request_timeout"] == 300
 
-    def test_psie_max_agents(self, monkeypatch):
-        monkeypatch.setenv("PSIE_MAX_AGENTS", "3")
+    def test_eidolon_vault_max_agents(self, monkeypatch):
+        monkeypatch.setenv("EIDOLON_VAULT_MAX_AGENTS", "3")
         cfg = load_config()
         assert cfg["simulation"]["max_agents"] == 3
 
-    def test_psie_sensitive_true(self, monkeypatch):
-        monkeypatch.setenv("PSIE_SENSITIVE", "true")
+    def test_eidolon_vault_sensitive_true(self, monkeypatch):
+        monkeypatch.setenv("EIDOLON_VAULT_SENSITIVE", "true")
         cfg = load_config()
         assert cfg["simulation"]["sensitive_mode"] is True
 
-    def test_psie_sensitive_false(self, monkeypatch):
-        monkeypatch.setenv("PSIE_SENSITIVE", "0")
+    def test_eidolon_vault_sensitive_false(self, monkeypatch):
+        monkeypatch.setenv("EIDOLON_VAULT_SENSITIVE", "0")
         cfg = load_config()
         assert cfg["simulation"]["sensitive_mode"] is False
 
@@ -218,30 +218,30 @@ class TestEnvOverrides:
         """Env var must win over a YAML file that says something different."""
         cfg_file = tmp_path / "config.yaml"
         cfg_file.write_text("llm:\n  request_timeout: 60\n")
-        monkeypatch.setenv("PSIE_LLM_TIMEOUT", "300")
+        monkeypatch.setenv("EIDOLON_VAULT_LLM_TIMEOUT", "300")
         cfg = load_config()
         assert cfg["llm"]["request_timeout"] == 300   # env wins
 
     def test_invalid_env_var_ignored(self, monkeypatch, caplog):
-        """An invalid PSIE_* value logs a warning and falls back to the default.
+        """An invalid EIDOLON_VAULT_* value logs a warning and falls back to the default.
 
         Previously this asserted 8 == 12 because the developer's
-        ~/.psie/config.yaml (max_agents=8) was loaded before the env-var cast
+        ~/.eidolon_vault/config.yaml (max_agents=8) was loaded before the env-var cast
         failed, leaving max_agents at 8 rather than the DEFAULT_CONFIG value 12.
 
         With isolated_home patching Path.home(), no user config is loaded, so
         the fallback really is DEFAULT_CONFIG["simulation"]["max_agents"] == 12.
         """
-        monkeypatch.setenv("PSIE_MAX_AGENTS", "not_a_number")
-        with caplog.at_level(logging.WARNING, logger="psie.config"):
+        monkeypatch.setenv("EIDOLON_VAULT_MAX_AGENTS", "not_a_number")
+        with caplog.at_level(logging.WARNING, logger="eidolon_vault.config"):
             cfg = load_config()
         # Bad env var must not crash
         assert cfg["simulation"]["max_agents"] == DEFAULT_CONFIG["simulation"]["max_agents"]  # 12
         # A warning must have been logged
-        assert any("PSIE_MAX_AGENTS" in r.message for r in caplog.records)
+        assert any("EIDOLON_VAULT_MAX_AGENTS" in r.message for r in caplog.records)
 
-    def test_all_psie_vars_absent_by_default(self):
-        """isolated_home strips all PSIE_* vars; plain load_config yields defaults."""
+    def test_all_eidolon_vault_vars_absent_by_default(self):
+        """isolated_home strips all EIDOLON_VAULT_* vars; plain load_config yields defaults."""
         cfg = load_config()
         assert cfg["simulation"]["max_agents"] == DEFAULT_CONFIG["simulation"]["max_agents"]
         assert cfg["llm"]["request_timeout"]   == DEFAULT_CONFIG["llm"]["request_timeout"]

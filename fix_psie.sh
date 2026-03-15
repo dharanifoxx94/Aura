@@ -1,12 +1,12 @@
 #!/bin/sh
-# fix_psie.sh — Drop this in ~/PSIE_v-1.4/ and run: sh fix_psie.sh
+# fix_eidolon-vault.sh — Drop this in ~/EIDOLON_VAULT_v-1.4/ and run: sh fix_eidolon-vault.sh
 set -e
 cd "$(dirname "$0")"
 
-echo "==> Writing psie/config.py ..."
-cat > psie/config.py << 'EOF'
+echo "==> Writing eidolon-vault/config.py ..."
+cat > eidolon-vault/config.py << 'EOF'
 """
-PSIE — Configuration Loader
+Eidolon Vault — Configuration Loader
 ============================
 Thread-safe singleton with validation and directory creation.
 
@@ -23,13 +23,13 @@ from .exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_PATH = Path.home() / ".psie" / "config.yaml"
+DEFAULT_CONFIG_PATH = Path.home() / ".eidolon-vault" / "config.yaml"
 LOCAL_CONFIG_PATH   = Path("config.yaml")
 
 
 def _default_config_path() -> Path:
     """Resolved fresh on every call so tests can patch Path.home()."""
-    return Path.home() / ".psie" / "config.yaml"
+    return Path.home() / ".eidolon-vault" / "config.yaml"
 
 
 DEFAULT_CONFIG: Dict[str, Any] = {
@@ -50,7 +50,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         },
         "max_tokens": 1024,
         "temperature": 0.7,
-        "cost_db_path": "~/.psie/psie_usage.db",
+        "cost_db_path": "~/.eidolon-vault/eidolon-vault_usage.db",
         "retry_attempts": 2,
         "retry_delay_s": 3.0,
         "request_timeout": DEFAULT_LLM_TIMEOUT,
@@ -61,11 +61,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "sensitive_mode": False,
         "persona_anchor_interval": 3,
     },
-    "graph":  {"backend": "custom", "storage_dir": "~/.psie/graphs", "max_entities": 20},
-    "memory": {"db_path": "~/.psie/psie_memory.db", "max_episodic_per_run": 50,
+    "graph":  {"backend": "custom", "storage_dir": "~/.eidolon-vault/graphs", "max_entities": 20},
+    "memory": {"db_path": "~/.eidolon-vault/eidolon-vault_memory.db", "max_episodic_per_run": 50,
                "max_semantic_inject": 5, "max_total_episodes": 5000},
-    "skills": {"db_path": "~/.psie/psie_skills.db", "top_k_inject": 3},
-    "output": {"reports_dir": "~/psie_reports"},
+    "skills": {"db_path": "~/.eidolon-vault/eidolon-vault_skills.db", "top_k_inject": 3},
+    "output": {"reports_dir": "~/eidolon-vault_reports"},
     "input":  {"max_file_bytes": 20971520, "url_timeout_s": 20, "allow_private_ip_url": False},
 }
 
@@ -126,12 +126,12 @@ def _bool(v: str) -> bool:
 
 
 _ENV_OVERRIDES: Dict[str, tuple] = {
-    "PSIE_LLM_TIMEOUT":    ("llm",        "request_timeout", int),
-    "PSIE_RETRY_ATTEMPTS": ("llm",        "retry_attempts",  int),
-    "PSIE_RETRY_DELAY":    ("llm",        "retry_delay_s",   float),
-    "PSIE_MAX_AGENTS":     ("simulation", "max_agents",      int),
-    "PSIE_MAX_TURNS":      ("simulation", "max_turns",       int),
-    "PSIE_SENSITIVE":      ("simulation", "sensitive_mode",  _bool),
+    "EIDOLON_VAULT_LLM_TIMEOUT":    ("llm",        "request_timeout", int),
+    "EIDOLON_VAULT_RETRY_ATTEMPTS": ("llm",        "retry_attempts",  int),
+    "EIDOLON_VAULT_RETRY_DELAY":    ("llm",        "retry_delay_s",   float),
+    "EIDOLON_VAULT_MAX_AGENTS":     ("simulation", "max_agents",      int),
+    "EIDOLON_VAULT_MAX_TURNS":      ("simulation", "max_turns",       int),
+    "EIDOLON_VAULT_SENSITIVE":      ("simulation", "sensitive_mode",  _bool),
 }
 
 
@@ -151,10 +151,10 @@ def load_config(config_path=None) -> Dict[str, Any]:
 
     Priority (lowest to highest):
       1. DEFAULT_CONFIG
-      2. ~/.psie/config.yaml  (resolved at call time via _default_config_path)
+      2. ~/.eidolon-vault/config.yaml  (resolved at call time via _default_config_path)
       3. ./config.yaml
       4. explicit config_path argument
-      5. PSIE_* environment variables
+      5. EIDOLON_VAULT_* environment variables
     """
     cfg = copy.deepcopy(DEFAULT_CONFIG)
     search_paths: List[Path] = [_default_config_path(), LOCAL_CONFIG_PATH]
@@ -205,7 +205,7 @@ def ensure_dirs(cfg: Dict[str, Any]) -> None:
         str(Path(cfg["memory"]["db_path"]).parent),
         str(Path(cfg["skills"]["db_path"]).parent),
         str(Path(cfg["llm"]["cost_db_path"]).parent),
-        str(Path.home() / ".psie"),
+        str(Path.home() / ".eidolon-vault"),
     ]
     for raw in paths:
         Path(os.path.expanduser(raw)).mkdir(parents=True, exist_ok=True)
@@ -213,29 +213,29 @@ EOF
 
 echo "==> Writing tests/conftest.py ..."
 cat > tests/conftest.py << 'EOF'
-"""PSIE shared test fixtures."""
+"""Eidolon Vault shared test fixtures."""
 import os
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
-from psie.config import reset_config
+from eidolon-vault.config import reset_config
 
 
 @pytest.fixture(autouse=True)
 def isolated_home(tmp_path, monkeypatch):
-    """Give every test a hermetic home with no .psie/config.yaml.
+    """Give every test a hermetic home with no .eidolon-vault/config.yaml.
 
     Patches applied before each test (all restored after automatically):
-      - Path.home()  -> tmp_path/fake_home  (empty directory, no .psie subdir)
+      - Path.home()  -> tmp_path/fake_home  (empty directory, no .eidolon-vault subdir)
       - HOME env var -> same fake dir so os.path.expanduser agrees
       - CWD          -> tmp_path so ./config.yaml does not exist by default
-      - All PSIE_*   -> removed from the environment
+      - All EIDOLON_VAULT_*   -> removed from the environment
     """
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
     monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
     monkeypatch.setenv("HOME", str(fake_home))
-    for key in [k for k in os.environ if k.startswith("PSIE_")]:
+    for key in [k for k in os.environ if k.startswith("EIDOLON_VAULT_")]:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.chdir(tmp_path)
     yield fake_home
@@ -289,7 +289,7 @@ EOF
 echo "==> Writing tests/test_config.py ..."
 cat > tests/test_config.py << 'EOF'
 """
-Tests for psie/config.py
+Tests for eidolon-vault/config.py
 
 Root cause of the three recurring failures (now fixed)
 ------------------------------------------------------
@@ -297,7 +297,7 @@ DEFAULT_CONFIG_PATH was evaluated at module-import time, freezing the real
 Path.home() before any test fixture could patch it.  load_config() now calls
 _default_config_path() at call time, and conftest.py patches Path.home() via
 the autouse isolated_home fixture so every test gets a hermetic empty home
-with no ~/.psie/config.yaml to bleed in.
+with no ~/.eidolon-vault/config.yaml to bleed in.
 """
 import copy
 import logging
@@ -305,12 +305,12 @@ import os
 import pytest
 from pathlib import Path
 
-from psie.config import (
+from eidolon-vault.config import (
     load_config, get_config, reset_config,
     _deep_merge, _expand_env, validate_config,
     DEFAULT_CONFIG,
 )
-from psie.exceptions import ConfigurationError
+from eidolon-vault.exceptions import ConfigurationError
 
 
 class TestDeepMerge:
@@ -335,15 +335,15 @@ class TestDeepMerge:
 
 class TestExpandEnv:
     def test_set_var_expands(self, monkeypatch):
-        monkeypatch.setenv("PSIE_TEST_KEY", "hello")
-        assert _expand_env("${PSIE_TEST_KEY}") == "hello"
+        monkeypatch.setenv("EIDOLON_VAULT_TEST_KEY", "hello")
+        assert _expand_env("${EIDOLON_VAULT_TEST_KEY}") == "hello"
 
     def test_unset_var_returns_empty(self, monkeypatch):
-        monkeypatch.delenv("PSIE_MISSING", raising=False)
-        assert _expand_env("${PSIE_MISSING}") == ""
+        monkeypatch.delenv("EIDOLON_VAULT_MISSING", raising=False)
+        assert _expand_env("${EIDOLON_VAULT_MISSING}") == ""
 
     def test_tilde_expanded(self):
-        result = _expand_env("~/psie_reports")
+        result = _expand_env("~/eidolon-vault_reports")
         assert result.startswith("/") and "~" not in result
 
     def test_non_string_passthrough(self):
@@ -358,7 +358,7 @@ class TestExpandEnv:
 
 class TestLoadConfigLayers:
     """All three regression tests pass because isolated_home (autouse) gives
-    every test a fake home with no .psie/config.yaml present."""
+    every test a fake home with no .eidolon-vault/config.yaml present."""
 
     def test_explicit_path_wins(self, tmp_path):
         (tmp_path / "custom.yaml").write_text("llm:\n  request_timeout: 999\n")
@@ -387,17 +387,17 @@ class TestLoadConfigLayers:
         assert cfg["llm"]["request_timeout"] == DEFAULT_CONFIG["llm"]["request_timeout"]
 
     def test_empty_home_yields_defaults(self):
-        """With no ~/.psie/config.yaml (empty fake home), only defaults load."""
+        """With no ~/.eidolon-vault/config.yaml (empty fake home), only defaults load."""
         cfg = load_config()
         assert cfg["simulation"]["max_agents"] == DEFAULT_CONFIG["simulation"]["max_agents"]
         assert cfg["llm"]["request_timeout"]   == DEFAULT_CONFIG["llm"]["request_timeout"]
 
     def test_both_layers_loaded_in_order(self, tmp_path):
-        """Both ~/.psie/config.yaml AND ./config.yaml are merged (no early break)."""
+        """Both ~/.eidolon-vault/config.yaml AND ./config.yaml are merged (no early break)."""
         fake_home = tmp_path / "fake_home"
-        psie_dir  = fake_home / ".psie"
-        psie_dir.mkdir(parents=True, exist_ok=True)
-        (psie_dir / "config.yaml").write_text("simulation:\n  max_agents: 5\n")
+        eidolon-vault_dir  = fake_home / ".eidolon-vault"
+        eidolon-vault_dir.mkdir(parents=True, exist_ok=True)
+        (eidolon-vault_dir / "config.yaml").write_text("simulation:\n  max_agents: 5\n")
         (tmp_path / "config.yaml").write_text("simulation:\n  max_turns: 7\n")
         cfg = load_config()
         assert cfg["simulation"]["max_agents"] == 5
@@ -406,35 +406,35 @@ class TestLoadConfigLayers:
 
 class TestEnvOverrides:
     def test_timeout(self, monkeypatch):
-        monkeypatch.setenv("PSIE_LLM_TIMEOUT", "300")
+        monkeypatch.setenv("EIDOLON_VAULT_LLM_TIMEOUT", "300")
         assert load_config()["llm"]["request_timeout"] == 300
 
     def test_max_agents(self, monkeypatch):
-        monkeypatch.setenv("PSIE_MAX_AGENTS", "3")
+        monkeypatch.setenv("EIDOLON_VAULT_MAX_AGENTS", "3")
         assert load_config()["simulation"]["max_agents"] == 3
 
     def test_sensitive_true(self, monkeypatch):
-        monkeypatch.setenv("PSIE_SENSITIVE", "true")
+        monkeypatch.setenv("EIDOLON_VAULT_SENSITIVE", "true")
         assert load_config()["simulation"]["sensitive_mode"] is True
 
     def test_sensitive_false(self, monkeypatch):
-        monkeypatch.setenv("PSIE_SENSITIVE", "0")
+        monkeypatch.setenv("EIDOLON_VAULT_SENSITIVE", "0")
         assert load_config()["simulation"]["sensitive_mode"] is False
 
     def test_env_beats_yaml(self, tmp_path, monkeypatch):
         (tmp_path / "config.yaml").write_text("llm:\n  request_timeout: 60\n")
-        monkeypatch.setenv("PSIE_LLM_TIMEOUT", "300")
+        monkeypatch.setenv("EIDOLON_VAULT_LLM_TIMEOUT", "300")
         assert load_config()["llm"]["request_timeout"] == 300
 
     def test_invalid_env_var_ignored(self, monkeypatch, caplog):
         """Bad cast logs warning and falls back to default — regression test."""
-        monkeypatch.setenv("PSIE_MAX_AGENTS", "not_a_number")
-        with caplog.at_level(logging.WARNING, logger="psie.config"):
+        monkeypatch.setenv("EIDOLON_VAULT_MAX_AGENTS", "not_a_number")
+        with caplog.at_level(logging.WARNING, logger="eidolon-vault.config"):
             cfg = load_config()
         assert cfg["simulation"]["max_agents"] == DEFAULT_CONFIG["simulation"]["max_agents"]
-        assert any("PSIE_MAX_AGENTS" in r.message for r in caplog.records)
+        assert any("EIDOLON_VAULT_MAX_AGENTS" in r.message for r in caplog.records)
 
-    def test_no_psie_vars_yields_defaults(self):
+    def test_no_eidolon-vault_vars_yields_defaults(self):
         cfg = load_config()
         assert cfg["simulation"]["max_agents"] == DEFAULT_CONFIG["simulation"]["max_agents"]
         assert cfg["llm"]["request_timeout"]   == DEFAULT_CONFIG["llm"]["request_timeout"]

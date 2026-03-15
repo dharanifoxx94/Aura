@@ -1,5 +1,5 @@
 """
-PSIE — Configuration Loader
+Eidolon Vault — Configuration Loader
 ============================
 Thread-safe singleton with validation and directory creation.
 
@@ -21,13 +21,13 @@ from .exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CONFIG_PATH = Path.home() / ".psie" / "config.yaml"
+DEFAULT_CONFIG_PATH = Path.home() / ".eidolon_vault" / "config.yaml"
 LOCAL_CONFIG_PATH   = Path("config.yaml")
 
 
 def _default_config_path() -> Path:
     """Resolved fresh on every call so tests can patch Path.home()."""
-    return Path.home() / ".psie" / "config.yaml"
+    return Path.home() / ".eidolon_vault" / "config.yaml"
 
 
 DEFAULT_CONFIG: Dict[str, Any] = {
@@ -49,7 +49,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         },
         "max_tokens": 1024,
         "temperature": 0.7,
-        "cost_db_path": "~/.psie/psie_usage.db",
+        "cost_db_path": "~/.eidolon_vault/eidolon_vault_usage.db",
         "retry_attempts": 2,
         "retry_delay_s": 3.0,
         "request_timeout": DEFAULT_LLM_TIMEOUT,
@@ -78,11 +78,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "persona_anchor_interval": 3,
         "max_injected_items": 6,  # Configurable injection limit
     },
-    "graph":  {"backend": "custom", "storage_dir": "~/.psie/graphs", "max_entities": 20},
-    "memory": {"db_path": "~/.psie/psie_memory.db", "max_episodic_per_run": 50,
+    "graph":  {"backend": "custom", "storage_dir": "~/.eidolon_vault/graphs", "max_entities": 20},
+    "memory": {"db_path": "~/.eidolon_vault/eidolon_vault_memory.db", "max_episodic_per_run": 50,
                "max_semantic_inject": 5, "max_total_episodes": 5000},
-    "skills": {"db_path": "~/.psie/psie_skills.db", "top_k_inject": 3},
-    "output": {"reports_dir": "~/psie_reports"},
+    "skills": {"db_path": "~/.eidolon_vault/eidolon_vault_skills.db", "top_k_inject": 3},
+    "output": {"reports_dir": "~/eidolon_vault_reports"},
     "input":  {"max_file_bytes": 20971520, "url_timeout_s": 20, "allow_private_ip_url": False},
 }
 
@@ -147,13 +147,13 @@ def _bool(v: str) -> bool:
 
 
 _ENV_OVERRIDES: Dict[str, tuple] = {
-    "PSIE_LLM_TIMEOUT":    ("llm",        "request_timeout", int),
-    "PSIE_RETRY_ATTEMPTS": ("llm",        "retry_attempts",  int),
-    "PSIE_RETRY_DELAY":    ("llm",        "retry_delay_s",   float),
-    "PSIE_MAX_AGENTS":     ("simulation", "max_agents",      int),
-    "PSIE_MAX_TURNS":      ("simulation", "max_turns",       int),
-    "PSIE_SENSITIVE":      ("simulation", "sensitive_mode",  _bool),
-    "PSIE_MAX_INJECTED":   ("simulation", "max_injected_items", int),
+    "EIDOLON_VAULT_LLM_TIMEOUT":    ("llm",        "request_timeout", int),
+    "EIDOLON_VAULT_RETRY_ATTEMPTS": ("llm",        "retry_attempts",  int),
+    "EIDOLON_VAULT_RETRY_DELAY":    ("llm",        "retry_delay_s",   float),
+    "EIDOLON_VAULT_MAX_AGENTS":     ("simulation", "max_agents",      int),
+    "EIDOLON_VAULT_MAX_TURNS":      ("simulation", "max_turns",       int),
+    "EIDOLON_VAULT_SENSITIVE":      ("simulation", "sensitive_mode",  _bool),
+    "EIDOLON_VAULT_MAX_INJECTED":   ("simulation", "max_injected_items", int),
 }
 
 
@@ -174,10 +174,10 @@ def load_config(config_path=None) -> Dict[str, Any]:
     Priority (lowest to highest):
       1. DEFAULT_CONFIG
       2. .env (via load_dotenv)
-      3. ~/.psie/config.yaml  (resolved at call time via _default_config_path)
+      3. ~/.eidolon_vault/config.yaml  (resolved at call time via _default_config_path)
       4. ./config.yaml
       5. explicit config_path argument
-      6. PSIE_* environment variables
+      6. EIDOLON_VAULT_* environment variables
     """
     if load_dotenv:
         # Load .env from current directory or recurse up
@@ -232,7 +232,7 @@ def ensure_dirs(cfg: Dict[str, Any]) -> None:
         str(Path(cfg["memory"]["db_path"]).parent),
         str(Path(cfg["skills"]["db_path"]).parent),
         str(Path(cfg["llm"]["cost_db_path"]).parent),
-        str(Path.home() / ".psie"),
+        str(Path.home() / ".eidolon_vault"),
     ]
     for raw in paths:
         Path(os.path.expanduser(raw)).mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,5 @@
 """
-PSIE — Knowledge Worker
+Eidolon Vault — Knowledge Worker
 ========================
 Top-level orchestrator for the Knowledge Ingestion Pipeline.
 
@@ -8,10 +8,10 @@ Wires together:
 
 Usage::
 
-    from psie.engine import PSIEEngine
-    from psie.knowledge_worker import KnowledgeWorker
+    from eidolon_vault.engine import EidolonVaultEngine
+    from eidolon_vault.knowledge_worker import KnowledgeWorker
 
-    engine = PSIEEngine()
+    engine = EidolonVaultEngine()
     worker = KnowledgeWorker(engine)
     result = worker.learn_from_source("https://example.com/article")
     print(result)
@@ -31,11 +31,11 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
-from .engine import PSIEEngine
+from .engine import EidolonVaultEngine
 from .feeder import ContentFeeder
 from .input_parser import scenario_hash
 from .models import AgentPersona, ScenarioContext, SimulationLog
-from .exceptions import PSIEError
+from .exceptions import EidolonVaultError
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +50,16 @@ class KnowledgeWorker:
     Parameters
     ----------
     engine:
-        A fully initialised ``PSIEEngine`` instance that provides the
+        A fully initialised ``EidolonVaultEngine`` instance that provides the
         gateway, simulation runner, memory store, and config.
     personas_path:
         Path to the YAML file that defines static verification personas.
-        Defaults to ``psie/agent_personas.yaml``.
+        Defaults to ``eidolon_vault/agent_personas.yaml``.
     """
 
     def __init__(
         self,
-        engine: PSIEEngine,
+        engine: EidolonVaultEngine,
         personas_path: Optional[str] = None,
     ) -> None:
         self.engine = engine
@@ -157,7 +157,7 @@ class KnowledgeWorker:
 
         personas = self.load_personas()
         if not personas:
-            raise PSIEError(
+            raise EidolonVaultError(
                 f"No personas loaded from '{self._personas_path}'. "
                 "Check that agent_personas.yaml exists and is well-formed."
             )
@@ -218,7 +218,7 @@ def _load_personas_from_yaml(path: Path) -> List[AgentPersona]:
     if not path.exists():
         raise FileNotFoundError(
             f"Static personas file not found: {path}\n"
-            "Copy psie/agent_personas.yaml to the expected location."
+            "Copy eidolon_vault/agent_personas.yaml to the expected location."
         )
 
     with path.open("r", encoding="utf-8") as fh:

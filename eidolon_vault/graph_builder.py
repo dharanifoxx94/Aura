@@ -1,5 +1,5 @@
 """
-PSIE — Graph Builder
+Eidolon Vault — Graph Builder
 =====================
 Extracts entities and relationships from scenario text via LLM, builds a
 NetworkX ``DiGraph``, and serialises it to GraphML for persistence.

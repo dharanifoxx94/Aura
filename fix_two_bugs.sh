@@ -1,5 +1,5 @@
 #!/bin/sh
-# fix_two_bugs.sh — Drop in ~/PSIE_v-1.4/ and run: sh fix_two_bugs.sh
+# fix_two_bugs.sh — Drop in ~/EIDOLON_VAULT_v-1.4/ and run: sh fix_two_bugs.sh
 #
 # BUG-1  engine.py:  run_from_url() never passed max_bytes to parse_url().
 #                    The 20 MB streaming body cap (FIX-3) was silently bypassed
@@ -19,7 +19,7 @@ import ast
 from pathlib import Path
 
 # ── BUG-1: engine.py ─────────────────────────────────────────────────────────
-p = Path("psie/engine.py")
+p = Path("eidolon-vault/engine.py")
 src = p.read_text()
 
 old = (
@@ -50,7 +50,7 @@ print("BUG-1 fixed — engine.py now passes max_bytes to parse_url()")
 #     agent_action: 45s — small local model (gemma3:4b), must be snappy
 #     report_generate: 180s — large model + long prompt, needs more time
 #     all others: inherit global request_timeout (60s)
-p = Path("psie/config.py")
+p = Path("eidolon-vault/config.py")
 src = p.read_text()
 
 old = (

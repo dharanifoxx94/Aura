@@ -1,17 +1,17 @@
-# 🌌 Aura
+# 🗝️ Eidolon Vault
 
 **Persistent Scenario Intelligence Engine**  
-*Simulating complexity through multi-agent self-learning.*
+*The secure repository for evolving agentic consciousness.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-1.4.1-green.svg)](https://github.com/dharanifoxx94/Aura)
+[![Version](https://img.shields.io/badge/version-1.4.1-green.svg)](https://github.com/dharanifoxx94/Eidolon-Vault)
 
 ---
 
 ## 💡 Core Concept
 
-Aura is a lightweight yet powerful framework for orchestrating **autonomous agents** in persistent, evolving environments. Unlike static simulations, Aura agents learn from their interactions, building a collective memory that influences future scenarios.
+Eidolon Vault is a high-performance framework for orchestrating **autonomous agents** in persistent, evolving environments. It serves as a digital "vault" where agent personas and their collective memories are stored, refined, and simulated across complex scenarios.
 
 ## 🚀 Key Features
 
@@ -25,8 +25,8 @@ Aura is a lightweight yet powerful framework for orchestrating **autonomous agen
 
 ```bash
 # Clone the repository
-git clone https://github.com/dharanifoxx94/Aura.git
-cd Aura
+git clone https://github.com/dharanifoxx94/Eidolon-Vault.git
+cd Eidolon-Vault
 
 # Install dependencies
 pip install .
@@ -46,12 +46,12 @@ pip install -e ".[dev]"
 
 2. **Run a Simulation**
    ```bash
-   aura run
+   eidolon-vault run
    ```
 
 ## 📂 Project Structure
 
-- `psie/` - Core engine logic and agent controllers.
+- `eidolon-vault/` - Core engine logic and agent controllers.
 - `tests/` - Robust test suite for reliability.
 - `agent_personas.yaml` - The blueprint for your simulation actors.
 

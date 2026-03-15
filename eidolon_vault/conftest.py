@@ -1,17 +1,17 @@
 """
-PSIE — Shared test fixtures.
+Eidolon Vault — Shared test fixtures.
 
 Key design decisions
 --------------------
 1.  isolated_home (autouse)
     The root cause of the three recurring test failures was that
-    ``DEFAULT_CONFIG_PATH = Path.home() / ".psie" / "config.yaml"`` was
+    ``DEFAULT_CONFIG_PATH = Path.home() / ".eidolon_vault" / "config.yaml"`` was
     evaluated once at module-import time and baked in the developer's real
     home directory.  Even though load_config() now calls _default_config_path()
     lazily, we ALSO need every test to get a hermetic home so that:
-      • Path.home() returns a temp dir with no .psie/config.yaml
+      • Path.home() returns a temp dir with no .eidolon_vault/config.yaml
       • The CWD contains no accidental config.yaml
-      • All PSIE_* env vars are absent (they would override YAML layers)
+      • All EIDOLON_VAULT_* env vars are absent (they would override YAML layers)
 
     This single autouse fixture eliminates all three root causes without
     requiring any test function to remember to do it manually.
@@ -30,8 +30,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import psie.config
-from psie.config import reset_config
+import eidolon_vault.config
+from eidolon_vault.config import reset_config
 
 
 # ---------------------------------------------------------------------------
@@ -63,8 +63,8 @@ def isolated_home(tmp_path, monkeypatch):
     # 2. Patch HOME so os.path.expanduser("~") is consistent.
     monkeypatch.setenv("HOME", str(fake_home))
 
-    # 3. Remove any stray PSIE_* env vars from the real environment.
-    for key in [k for k in os.environ if k.startswith("PSIE_")]:
+    # 3. Remove any stray EIDOLON_VAULT_* env vars from the real environment.
+    for key in [k for k in os.environ if k.startswith("EIDOLON_VAULT_")]:
         monkeypatch.delenv(key, raising=False)
 
     # 4. Change CWD so a real ./config.yaml in the project root is never loaded.
@@ -123,7 +123,7 @@ def minimal_cfg(tmp_path):
             "providers": {"ollama": {"base_url": "http://localhost:11434", "api_key": "ollama"}},
             "max_tokens": 512,
             "temperature": 0.7,
-            "cost_db_path": str(tmp_path / "psie_test_usage.db"),
+            "cost_db_path": str(tmp_path / "eidolon_vault_test_usage.db"),
             "retry_attempts": 0,
             "retry_delay_s": 0.0,
             "request_timeout": 10,
@@ -142,13 +142,13 @@ def minimal_cfg(tmp_path):
             "max_entities": 5,
         },
         "memory": {
-            "db_path": str(tmp_path / "psie_test_memory.db"),
+            "db_path": str(tmp_path / "eidolon_vault_test_memory.db"),
             "max_episodic_per_run": 10,
             "max_semantic_inject": 2,
             "max_total_episodes": 100,
         },
         "skills": {
-            "db_path": str(tmp_path / "psie_test_skills.db"),
+            "db_path": str(tmp_path / "eidolon_vault_test_skills.db"),
             "top_k_inject": 2,
         },
         "output": {"reports_dir": str(tmp_path / "reports")},

@@ -1,15 +1,15 @@
 #!/bin/sh
-# fix_psie_issues.sh — Drop in ~/PSIE_v-1.4/ and run: sh fix_psie_issues.sh
+# fix_eidolon-vault_issues.sh — Drop in ~/EIDOLON_VAULT_v-1.4/ and run: sh fix_eidolon-vault_issues.sh
 # Fixes all 5 remaining high/medium/low issues found in the security audit.
 set -e
 cd "$(dirname "$0")"
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "==> [1/3] Patching psie/utils.py (safe_parse_json ReDoS + prompt injection)"
+echo "==> [1/3] Patching eidolon-vault/utils.py (safe_parse_json ReDoS + prompt injection)"
 # ─────────────────────────────────────────────────────────────────────────────
-cat > psie/utils.py << 'EOF'
+cat > eidolon-vault/utils.py << 'EOF'
 """
-PSIE — Shared Utilities
+Eidolon Vault — Shared Utilities
 =======================
 Centralised helpers for JSON parsing, text sanitisation, FTS5 safety,
 and input validation.
@@ -226,11 +226,11 @@ def clamp(value: float, lo: float = 0.0, hi: float = 1.0, default: float = 0.5) 
 EOF
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "==> [2/3] Patching psie/input_parser.py (response body size cap)"
+echo "==> [2/3] Patching eidolon-vault/input_parser.py (response body size cap)"
 # ─────────────────────────────────────────────────────────────────────────────
-cat > psie/input_parser.py << 'EOF'
+cat > eidolon-vault/input_parser.py << 'EOF'
 """
-PSIE — Input Parser
+Eidolon Vault — Input Parser
 ====================
 Normalises raw input (text, URL, PDF, .docx, plain text) into a
 ScenarioContext with added SSRF protection (IP pinning and redirect
@@ -488,7 +488,7 @@ def _fetch_with_requests(
     """
     session = requests.Session()
     session.max_redirects = 0
-    headers = {"User-Agent": "Mozilla/5.0 (PSIE/1.4; +https://github.com/psie)"}
+    headers = {"User-Agent": "Mozilla/5.0 (Eidolon Vault/1.4; +https://github.com/eidolon-vault)"}
 
     current_url = url
     redirect_count = 0
@@ -587,7 +587,7 @@ def _fetch_with_urllib(
     pinned_url = parsed._replace(netloc=new_netloc).geturl()
     req = urllib.request.Request(
         pinned_url,
-        headers={"User-Agent": "Mozilla/5.0 (PSIE/1.4)", "Host": hostname},
+        headers={"User-Agent": "Mozilla/5.0 (Eidolon Vault/1.4)", "Host": hostname},
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
@@ -643,7 +643,7 @@ def _extract_title_from_url(url: str) -> str:
 EOF
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "==> [3/3] Patching psie/llm_gateway.py (API key warning spam + heartbeat timeout)"
+echo "==> [3/3] Patching eidolon-vault/llm_gateway.py (API key warning spam + heartbeat timeout)"
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Use Python to do a targeted in-place patch of two methods so we don't have
@@ -652,7 +652,7 @@ python3 - << 'PYEOF'
 import re
 from pathlib import Path
 
-src = Path("psie/llm_gateway.py").read_text()
+src = Path("eidolon-vault/llm_gateway.py").read_text()
 
 # ── FIX-4: _check_api_keys — demote WARNING → DEBUG ──────────────────────────
 old_check = '''    def _check_api_keys(self) -> None:
@@ -758,8 +758,8 @@ else:
     src = src.replace(old_heartbeat, new_heartbeat, 1)
     print("  FIX-5 applied: _call_with_heartbeat now has hard total timeout")
 
-Path("psie/llm_gateway.py").write_text(src)
-print("  Written: psie/llm_gateway.py")
+Path("eidolon-vault/llm_gateway.py").write_text(src)
+print("  Written: eidolon-vault/llm_gateway.py")
 PYEOF
 
 echo ""

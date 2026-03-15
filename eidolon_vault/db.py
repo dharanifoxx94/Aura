@@ -1,5 +1,5 @@
 """
-PSIE — Database Helpers
+Eidolon Vault — Database Helpers
 ========================
 Centralised SQLite connection management with context manager.
 """

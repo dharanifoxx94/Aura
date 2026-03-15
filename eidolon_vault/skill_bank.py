@@ -1,5 +1,5 @@
 """
-PSIE — Skill Bank
+Eidolon Vault — Skill Bank
 ==================
 MetaClaw‑inspired SQLite‑backed skill store with FTS5 and sanitisation.
 """

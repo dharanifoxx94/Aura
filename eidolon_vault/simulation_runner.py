@@ -1,5 +1,5 @@
 """
-PSIE — Simulation Runner
+Eidolon Vault — Simulation Runner
 =========================
 Custom lightweight multi‑agent loop with skill injection, memory injection,
 and persona anchoring.

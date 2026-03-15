@@ -1,5 +1,5 @@
 """
-PSIE — Memory Store
+Eidolon Vault — Memory Store
 ====================
 Persistent episodic + semantic memory across simulation runs.
 Uses SQLite with FTS5 and automatic pruning.

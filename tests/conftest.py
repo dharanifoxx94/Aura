@@ -1,26 +1,26 @@
-"""PSIE shared test fixtures."""
+"""Eidolon Vault shared test fixtures."""
 import os
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
-from psie.config import reset_config
+from eidolon_vault.config import reset_config
 
 
 @pytest.fixture(autouse=True)
 def isolated_home(tmp_path, monkeypatch):
-    """Give every test a hermetic home with no .psie/config.yaml.
+    """Give every test a hermetic home with no .eidolon_vault/config.yaml.
 
     Patches applied before each test (all restored after automatically):
-      - Path.home()  -> tmp_path/fake_home  (empty directory, no .psie subdir)
+      - Path.home()  -> tmp_path/fake_home  (empty directory, no .eidolon_vault subdir)
       - HOME env var -> same fake dir so os.path.expanduser agrees
       - CWD          -> tmp_path so ./config.yaml does not exist by default
-      - All PSIE_*   -> removed from the environment
+      - All EIDOLON_VAULT_*   -> removed from the environment
     """
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
     monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
     monkeypatch.setenv("HOME", str(fake_home))
-    for key in [k for k in os.environ if k.startswith("PSIE_")]:
+    for key in [k for k in os.environ if k.startswith("EIDOLON_VAULT_")]:
         monkeypatch.delenv(key, raising=False)
     monkeypatch.chdir(tmp_path)
     yield fake_home

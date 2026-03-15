@@ -1,5 +1,5 @@
 #!/bin/sh
-# fix_skill_memory.sh — Drop in ~/PSIE_v-1.4/ and run: sh fix_skill_memory.sh
+# fix_skill_memory.sh — Drop in ~/EIDOLON_VAULT_v-1.4/ and run: sh fix_skill_memory.sh
 #
 # CRITICAL  skill_bank.py + memory_store.py: gateway.complete() returns a
 #           (content, tokens) tuple since fix_medium.py, but both callers
@@ -27,7 +27,7 @@ import ast
 from pathlib import Path
 
 # ── skill_bank.py ─────────────────────────────────────────────────────────────
-p = Path("psie/skill_bank.py")
+p = Path("eidolon-vault/skill_bank.py")
 src = p.read_text()
 
 src = src.replace(
@@ -53,7 +53,7 @@ p.write_text(src)
 print("skill_bank.py patched")
 
 # ── memory_store.py ───────────────────────────────────────────────────────────
-p = Path("psie/memory_store.py")
+p = Path("eidolon-vault/memory_store.py")
 src = p.read_text()
 
 # CRIT: tuple unpack

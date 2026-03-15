@@ -1,5 +1,5 @@
 """
-PSIE — LLM Gateway
+Eidolon Vault — LLM Gateway
 ===================
 Provider‑agnostic router using LiteLLM with fallback, retries, rate limiting,
 circuit breaker, and cost logging.
@@ -133,7 +133,7 @@ class LLMGateway:
         self.last_used_backend: str = ""
 
         # Cost DB path.
-        cost_db_raw = cfg["llm"].get("cost_db_path", "~/.psie/psie_usage.db")
+        cost_db_raw = cfg["llm"].get("cost_db_path", "~/.eidolon_vault/eidolon_vault_usage.db")
         self._cost_db = str(Path(cost_db_raw).expanduser())
         self._init_cost_db()
 
@@ -274,7 +274,7 @@ class LLMGateway:
                 "Troubleshooting:\n"
                 "  • ollama serve          — start local inference\n"
                 "  • ollama pull gemma3:4b — pull default model\n"
-                "  • psie init             — verify API keys in ~/.psie/config.yaml"
+                "  • eidolon_vault init             — verify API keys in ~/.eidolon_vault/config.yaml"
             )
 
         if skipped_backends:
@@ -286,7 +286,7 @@ class LLMGateway:
         )
 
     def get_cost_summary(self) -> List[Dict[str, Any]]:
-        """Return recent usage‑log rows for the ``psie cost`` command."""
+        """Return recent usage‑log rows for the ``eidolon_vault cost`` command."""
         with db_connect(self._cost_db) as conn:
             rows = conn.execute(
                 "SELECT task_type, backend, tokens, ts FROM usage ORDER BY ts DESC LIMIT 100"

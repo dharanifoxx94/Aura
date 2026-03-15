@@ -1,5 +1,5 @@
 """
-PSIE — Content Feeder
+Eidolon Vault — Content Feeder
 ======================
 Ingests content from URLs, RSS feeds, and raw text, normalising everything
 into a ``ScenarioContext`` ready for the simulation runner.
@@ -348,7 +348,7 @@ def _fetch_url_ssrf_safe(
     # ── Fetch using the ORIGINAL URL so SSL/SNI works ────────────────────
     _CHUNK = 65_536
     session = requests.Session()
-    headers = {"User-Agent": "Mozilla/5.0 (PSIE/1.4; +https://github.com/psie)"}
+    headers = {"User-Agent": "Mozilla/5.0 (Eidolon Vault/1.4; +https://github.com/eidolon_vault)"}
 
     try:
         resp = session.get(url, headers=headers, timeout=timeout_s, stream=True)

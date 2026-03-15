@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PSIE — Apply recommended fixes from architecture review
+# Eidolon Vault — Apply recommended fixes from architecture review
 #
 # Patches applied:
 #   A. config.py   — add 'summarise' route (gemini-2.5-flash preferred)
 #                  — bump fact_extract timeout to 180s, agent_action to 120s
 #                  — add summarise to task_max_tokens
-#   B. input_parser.py — fix SSL bug in psie run --url (IP mismatch → use hostname)
+#   B. input_parser.py — fix SSL bug in eidolon-vault run --url (IP mismatch → use hostname)
 #   C. config.yaml — fix indentation + add summarise route + fact_extract timeout
 #   D. agent_personas.yaml — add C++ Tutor persona
 #
 # Usage:
 #   bash apply_review_fixes.sh
-#   PSIE_DIR=/custom/path bash apply_review_fixes.sh
+#   EIDOLON_VAULT_DIR=/custom/path bash apply_review_fixes.sh
 # =============================================================================
 
 set -euo pipefail
@@ -25,33 +25,33 @@ warn()   { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
 die()    { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 banner() { echo -e "\n${BOLD}$*${RESET}"; }
 
-PSIE_CONFIG="${HOME}/.psie/config.yaml"
+EIDOLON_VAULT_CONFIG="${HOME}/.eidolon-vault/config.yaml"
 
-# ── Locate PSIE ───────────────────────────────────────────────────────────────
-banner "=== Step 0: Locating PSIE install ==="
-if [[ -z "${PSIE_DIR:-}" ]]; then
-    PSIE_BIN="$(command -v psie 2>/dev/null || true)"
-    [[ -n "$PSIE_BIN" ]] || die "'psie' not found. Activate venv first."
-    REAL_BIN="$(readlink -f "$PSIE_BIN")"
-    info "psie binary: $REAL_BIN"
-    PSIE_DIR=""
+# ── Locate Eidolon Vault ───────────────────────────────────────────────────────────────
+banner "=== Step 0: Locating Eidolon Vault install ==="
+if [[ -z "${EIDOLON_VAULT_DIR:-}" ]]; then
+    EIDOLON_VAULT_BIN="$(command -v eidolon-vault 2>/dev/null || true)"
+    [[ -n "$EIDOLON_VAULT_BIN" ]] || die "'eidolon-vault' not found. Activate venv first."
+    REAL_BIN="$(readlink -f "$EIDOLON_VAULT_BIN")"
+    info "eidolon-vault binary: $REAL_BIN"
+    EIDOLON_VAULT_DIR=""
     SEARCH="$(dirname "$REAL_BIN")"
     for _ in 1 2 3 4 5; do
         SEARCH="$(dirname "$SEARCH")"
-        if [[ -f "${SEARCH}/psie/__init__.py" ]]; then PSIE_DIR="$SEARCH"; break; fi
+        if [[ -f "${SEARCH}/eidolon-vault/__init__.py" ]]; then EIDOLON_VAULT_DIR="$SEARCH"; break; fi
     done
-    if [[ -z "$PSIE_DIR" ]]; then
-        for c in "${HOME}/PSIE_v-1.4" "${HOME}/PSIE" "$(pwd)"; do
-            if [[ -f "${c}/psie/__init__.py" ]]; then PSIE_DIR="$c"; break; fi
+    if [[ -z "$EIDOLON_VAULT_DIR" ]]; then
+        for c in "${HOME}/EIDOLON_VAULT_v-1.4" "${HOME}/Eidolon Vault" "$(pwd)"; do
+            if [[ -f "${c}/eidolon-vault/__init__.py" ]]; then EIDOLON_VAULT_DIR="$c"; break; fi
         done
     fi
-    [[ -n "$PSIE_DIR" ]] || die "Cannot find PSIE dir. Set PSIE_DIR=/your/path"
+    [[ -n "$EIDOLON_VAULT_DIR" ]] || die "Cannot find Eidolon Vault dir. Set EIDOLON_VAULT_DIR=/your/path"
 fi
-PSIE_PKG="${PSIE_DIR}/psie"
-CONFIG_PY="${PSIE_PKG}/config.py"
-INPUT_PARSER="${PSIE_PKG}/input_parser.py"
-PERSONAS_YAML="${PSIE_PKG}/agent_personas.yaml"
-ok "PSIE project root: ${PSIE_DIR}"
+EIDOLON_VAULT_PKG="${EIDOLON_VAULT_DIR}/eidolon-vault"
+CONFIG_PY="${EIDOLON_VAULT_PKG}/config.py"
+INPUT_PARSER="${EIDOLON_VAULT_PKG}/input_parser.py"
+PERSONAS_YAML="${EIDOLON_VAULT_PKG}/agent_personas.yaml"
+ok "Eidolon Vault project root: ${EIDOLON_VAULT_DIR}"
 
 # ── Patch A: config.py — summarise route + timeouts ──────────────────────────
 banner "=== Patch A: config.py — summarise route + timeouts ==="
@@ -60,7 +60,7 @@ info "Backup: ${CONFIG_PY}.bak"
 echo 'CmltcG9ydCBzeXMsIHJlCgpwYXRoID0gc3lzLmFyZ3ZbMV0Kc3JjID0gb3BlbihwYXRoKS5yZWFkKCkKY2hhbmdlZCA9IEZhbHNlCgojIDEuIEFkZCBzdW1tYXJpc2Ugcm91dGUgaWYgbWlzc2luZwppZiAnInN1bW1hcmlzZSInIG5vdCBpbiBzcmM6CiAgICBvbGQgPSAnICAgICAgICAgICAgImZhY3RfZXh0cmFjdCI6ICAgICB7InByZWZlcnJlZCI6ICJncm9xL2xsYW1hLTMuMy03MGItdmVyc2F0aWxlIiwgICAiZmFsbGJhY2siOiBbImdlbWluaS9nZW1pbmktMi41LWZsYXNoIiwgIm9sbGFtYS9nZW1tYTM6NGIiXX0sJwogICAgbmV3ID0gb2xkICsgIiIiCiAgICAgICAgICAgICJzdW1tYXJpc2UiOiAgICAgICAgeyJwcmVmZXJyZWQiOiAiZ2VtaW5pL2dlbWluaS0yLjUtZmxhc2giLCAgICAgICAgImZhbGxiYWNrIjogWyJncm9xL2xsYW1hLTMuMy03MGItdmVyc2F0aWxlIiwgIm9sbGFtYS9nZW1tYTM6NGIiXX0sIiIiCiAgICBpZiBvbGQgaW4gc3JjOgogICAgICAgIHNyYyA9IHNyYy5yZXBsYWNlKG9sZCwgbmV3LCAxKQogICAgICAgIGNoYW5nZWQgPSBUcnVlCiAgICAgICAgcHJpbnQoIiAgKyBzdW1tYXJpc2Ugcm91dGUgYWRkZWQgKHByZWZlcnMgZ2VtaW5pLTIuNS1mbGFzaCkiKQogICAgZWxzZToKICAgICAgICBwcmludCgiICBXQVJOSU5HOiBjb3VsZCBub3QgZmluZCBmYWN0X2V4dHJhY3QgbGluZSB0byBhbmNob3Igc3VtbWFyaXNlIHJvdXRlIikKCiMgMi4gQWRkIHN1bW1hcmlzZSB0byB0YXNrX21heF90b2tlbnMgYmxvY2sKaWYgJyJzdW1tYXJpc2UiJyBub3QgaW4gc3JjIG9yICd0YXNrX21heF90b2tlbnMnIG5vdCBpbiBzcmM6CiAgICBwYXNzCmVsc2U6CiAgICBpZiAnInN1bW1hcmlzZSI6JyBub3QgaW4gc3JjLnNwbGl0KCcidGFza19tYXhfdG9rZW5zIicpWzFdWzozMDBdOgogICAgICAgIG9sZDIgPSAnICAgICAgICAgICAgImZhY3RfZXh0cmFjdCI6ICAgICAxMDI0LCcKICAgICAgICBuZXcyID0gb2xkMiArICdcbiAgICAgICAgICAgICJzdW1tYXJpc2UiOiAgICAgICA1MTIsJwogICAgICAgIGlmIG9sZDIgaW4gc3JjOgogICAgICAgICAgICBzcmMgPSBzcmMucmVwbGFjZShvbGQyLCBuZXcyLCAxKQogICAgICAgICAgICBjaGFuZ2VkID0gVHJ1ZQogICAgICAgICAgICBwcmludCgiICArIHN1bW1hcmlzZSBhZGRlZCB0byB0YXNrX21heF90b2tlbnMgKDUxMikiKQoKIyAzLiBCdW1wIGZhY3RfZXh0cmFjdCB0aW1lb3V0OiBhZGQgb3IgdXBkYXRlIGluIHRhc2tfdGltZW91dHMgYmxvY2sKaWYgJyJmYWN0X2V4dHJhY3QiJyBpbiBzcmMgYW5kICcidGFza190aW1lb3V0cyInIGluIHNyYzoKICAgICMgQ2hlY2sgaWYgYWxyZWFkeSB0aGVyZQogICAgdHRfYmxvY2sgPSBzcmMuc3BsaXQoJyJ0YXNrX3RpbWVvdXRzIicpWzFdLnNwbGl0KCd9JylbMF0KICAgIGlmICciZmFjdF9leHRyYWN0Iicgbm90IGluIHR0X2Jsb2NrOgogICAgICAgIG9sZDMgPSAnImFnZW50X2FjdGlvbiI6ICAgIDQ1LCcKICAgICAgICBuZXczID0gJyJhZ2VudF9hY3Rpb24iOiAgICAxMjAsXG4gICAgICAgICAgICAiZmFjdF9leHRyYWN0IjogICAgMTgwLCcKICAgICAgICBpZiBvbGQzIGluIHNyYzoKICAgICAgICAgICAgc3JjID0gc3JjLnJlcGxhY2Uob2xkMywgbmV3MywgMSkKICAgICAgICAgICAgY2hhbmdlZCA9IFRydWUKICAgICAgICAgICAgcHJpbnQoIiAgKyBmYWN0X2V4dHJhY3QgdGltZW91dCBzZXQgdG8gMTgwcywgYWdlbnRfYWN0aW9uIGJ1bXBlZCB0byAxMjBzIikKICAgIGVsc2U6CiAgICAgICAgIyBVcGRhdGUgZXhpc3RpbmcgdmFsdWUKICAgICAgICBzcmMgPSByZS5zdWIociciZmFjdF9leHRyYWN0IjpccypcZCsnLCAnImZhY3RfZXh0cmFjdCI6ICAgIDE4MCcsIHNyYykKICAgICAgICBjaGFuZ2VkID0gVHJ1ZQogICAgICAgIHByaW50KCIgIH4gZmFjdF9leHRyYWN0IHRpbWVvdXQgdXBkYXRlZCB0byAxODBzIikKZWxzZToKICAgIHByaW50KCIgIFdBUk5JTkc6IGNvdWxkIG5vdCBsb2NhdGUgdGFza190aW1lb3V0cyBibG9jayIpCgppZiBjaGFuZ2VkOgogICAgb3BlbihwYXRoLCAidyIpLndyaXRlKHNyYykKICAgIHByaW50KCIgIGNvbmZpZy5weSBzYXZlZC4iKQplbHNlOgogICAgcHJpbnQoIiAgTm8gY2hhbmdlcyBuZWVkZWQuIikK' | base64 -d | python3 - "$CONFIG_PY"
 ok "config.py patched."
 
-# ── Patch B: input_parser.py — SSL fix for psie run --url ────────────────────
+# ── Patch B: input_parser.py — SSL fix for eidolon-vault run --url ────────────────────
 banner "=== Patch B: input_parser.py — SSL fix ==="
 cp "$INPUT_PARSER" "${INPUT_PARSER}.bak"
 info "Backup: ${INPUT_PARSER}.bak"
@@ -68,16 +68,16 @@ echo 'CmltcG9ydCBzeXMKCnBhdGggPSBzeXMuYXJndlsxXQpzcmMgPSBvcGVuKHBhdGgpLnJlYWQoKQ
 ok "input_parser.py patched."
 
 # ── Patch C: config.yaml — indentation + summarise + timeout ─────────────────
-banner "=== Patch C: ~/.psie/config.yaml ==="
-if [[ ! -f "$PSIE_CONFIG" ]]; then
-    warn "No config found — running psie init first."
-    psie init
+banner "=== Patch C: ~/.eidolon-vault/config.yaml ==="
+if [[ ! -f "$EIDOLON_VAULT_CONFIG" ]]; then
+    warn "No config found — running eidolon-vault init first."
+    eidolon-vault init
 fi
-cp "$PSIE_CONFIG" "${PSIE_CONFIG}.bak"
-info "Backup: ${PSIE_CONFIG}.bak"
-echo 'CmltcG9ydCByZSwgc3lzLCB5YW1sCgpwYXRoID0gc3lzLmFyZ3ZbMV0Kc3JjID0gb3BlbihwYXRoKS5yZWFkKCkKY2hhbmdlZCA9IEZhbHNlCgojIEZpeCAxOiB1bi1pbmRlbnRlZCBrZXlzIHVuZGVyIGlucHV0OgpLTk9XTl9JTlBVVF9LRVlTID0geyJtYXhfZmlsZV9ieXRlcyIsInVybF90aW1lb3V0X3MiLCJhbGxvd19wcml2YXRlX2lwX3VybCIsInRydXN0ZWRfZG9tYWlucyIsIm1heF9yZWRpcmVjdHMifQpsaW5lcyA9IHNyYy5zcGxpdGxpbmVzKGtlZXBlbmRzPVRydWUpCmZpeGVkID0gW10KaW5faW5wdXQgPSBGYWxzZQpmb3IgbGluZSBpbiBsaW5lczoKICAgIHJhdyA9IGxpbmUucnN0cmlwKCJcbiIpLnJlcGxhY2UoIlx0IiwgIiAgIikKICAgIG0gPSByZS5tYXRjaChyIl4oW2EtekEtWl9dKylccyo6IiwgcmF3KQogICAgaWYgbToKICAgICAgICBrID0gbS5ncm91cCgxKQogICAgICAgIGlmIGsgPT0gImlucHV0IjogaW5faW5wdXQgPSBUcnVlCiAgICAgICAgZWxpZiBpbl9pbnB1dDogaW5faW5wdXQgPSBGYWxzZQogICAgaWYgaW5faW5wdXQgYW5kIHJhdyBhbmQgbm90IHJhdy5zdGFydHN3aXRoKCIgIikgYW5kIG5vdCByYXcuc3RhcnRzd2l0aCgiIyIpOgogICAgICAgIG0yID0gcmUubWF0Y2gociJeKFthLXpBLVpfXSspIiwgcmF3KQogICAgICAgIGlmIG0yIGFuZCBtMi5ncm91cCgxKSAhPSAiaW5wdXQiOgogICAgICAgICAgICByYXcgPSAiICAiICsgcmF3CiAgICAgICAgICAgIGNoYW5nZWQgPSBUcnVlCiAgICBmaXhlZC5hcHBlbmQocmF3ICsgIlxuIikKc3JjID0gIiIuam9pbihmaXhlZCkKCiMgRml4IDI6IGFkZCBzdW1tYXJpc2UgdG8gcm91dGluZyBibG9jayBpbiBjb25maWcueWFtbCBpZiBpdCBoYXMgYSByb3V0aW5nIHNlY3Rpb24KaWYgInJvdXRpbmc6IiBpbiBzcmMgYW5kICJzdW1tYXJpc2U6IiBub3QgaW4gc3JjOgogICAgc3JjID0gcmUuc3ViKAogICAgICAgIHIiKGZhY3RfZXh0cmFjdDouKj8oPzpwcmVmZXJyZWR8ZmFsbGJhY2spLio/XG4pIiwKICAgICAgICBsYW1iZGEgbTogbS5ncm91cCgwKSArICIgICAgc3VtbWFyaXNlOlxuICAgICAgcHJlZmVycmVkOiBcImdlbWluaS9nZW1pbmktMi41LWZsYXNoXCJcbiAgICAgIGZhbGxiYWNrOiBbXCJncm9xL2xsYW1hLTMuMy03MGItdmVyc2F0aWxlXCIsIFwib2xsYW1hL2dlbW1hMzo0YlwiXVxuIiwKICAgICAgICBzcmMsIGNvdW50PTEKICAgICkKICAgIGNoYW5nZWQgPSBUcnVlCiAgICBwcmludCgiICArIHN1bW1hcmlzZSByb3V0ZSBhZGRlZCB0byBjb25maWcueWFtbCByb3V0aW5nIGJsb2NrIikKCiMgRml4IDM6IGVuc3VyZSB0YXNrX3RpbWVvdXRzIGhhcyBmYWN0X2V4dHJhY3Q6IDE4MAppZiAidGFza190aW1lb3V0czoiIGluIHNyYzoKICAgIGlmICJmYWN0X2V4dHJhY3Q6IiBub3QgaW4gc3JjLnNwbGl0KCJ0YXNrX3RpbWVvdXRzOiIpWzFdLnNwbGl0KCJcblxuIilbMF06CiAgICAgICAgc3JjID0gcmUuc3ViKAogICAgICAgICAgICByIih0YXNrX3RpbWVvdXRzOi4qPykoXG5bYS16QS1aXSkiLAogICAgICAgICAgICBsYW1iZGEgbTogbS5ncm91cCgxKSArICJcbiAgICBmYWN0X2V4dHJhY3Q6IDE4MCIgKyBtLmdyb3VwKDIpLAogICAgICAgICAgICBzcmMsIGNvdW50PTEsIGZsYWdzPXJlLkRPVEFMTAogICAgICAgICkKICAgICAgICBjaGFuZ2VkID0gVHJ1ZQogICAgICAgIHByaW50KCIgICsgZmFjdF9leHRyYWN0OiAxODAgYWRkZWQgdG8gdGFza190aW1lb3V0cyBpbiBjb25maWcueWFtbCIpCgpvcGVuKHBhdGgsICJ3Iikud3JpdGUoc3JjKQoKdHJ5OgogICAgeWFtbC5zYWZlX2xvYWQob3BlbihwYXRoKSkKICAgIHByaW50KCIgIGNvbmZpZy55YW1sIHZhbGlkLiIpCmV4Y2VwdCB5YW1sLllBTUxFcnJvciBhcyBlOgogICAgcHJpbnQoZiIgIFdBUk5JTkcg4oCUIGNvbmZpZy55YW1sIHN0aWxsIGludmFsaWQ6IHtlfSIpCiAgICBwcmludCgiICBSdW46IHNlZCAtbiBcJzM1LDQ1cFwnIH4vLnBzaWUvY29uZmlnLnlhbWwgfCBjYXQgLUEgIHRvIGluc3BlY3QiKQo=' | base64 -d | python3 - "$PSIE_CONFIG"
+cp "$EIDOLON_VAULT_CONFIG" "${EIDOLON_VAULT_CONFIG}.bak"
+info "Backup: ${EIDOLON_VAULT_CONFIG}.bak"
+echo 'CmltcG9ydCByZSwgc3lzLCB5YW1sCgpwYXRoID0gc3lzLmFyZ3ZbMV0Kc3JjID0gb3BlbihwYXRoKS5yZWFkKCkKY2hhbmdlZCA9IEZhbHNlCgojIEZpeCAxOiB1bi1pbmRlbnRlZCBrZXlzIHVuZGVyIGlucHV0OgpLTk9XTl9JTlBVVF9LRVlTID0geyJtYXhfZmlsZV9ieXRlcyIsInVybF90aW1lb3V0X3MiLCJhbGxvd19wcml2YXRlX2lwX3VybCIsInRydXN0ZWRfZG9tYWlucyIsIm1heF9yZWRpcmVjdHMifQpsaW5lcyA9IHNyYy5zcGxpdGxpbmVzKGtlZXBlbmRzPVRydWUpCmZpeGVkID0gW10KaW5faW5wdXQgPSBGYWxzZQpmb3IgbGluZSBpbiBsaW5lczoKICAgIHJhdyA9IGxpbmUucnN0cmlwKCJcbiIpLnJlcGxhY2UoIlx0IiwgIiAgIikKICAgIG0gPSByZS5tYXRjaChyIl4oW2EtekEtWl9dKylccyo6IiwgcmF3KQogICAgaWYgbToKICAgICAgICBrID0gbS5ncm91cCgxKQogICAgICAgIGlmIGsgPT0gImlucHV0IjogaW5faW5wdXQgPSBUcnVlCiAgICAgICAgZWxpZiBpbl9pbnB1dDogaW5faW5wdXQgPSBGYWxzZQogICAgaWYgaW5faW5wdXQgYW5kIHJhdyBhbmQgbm90IHJhdy5zdGFydHN3aXRoKCIgIikgYW5kIG5vdCByYXcuc3RhcnRzd2l0aCgiIyIpOgogICAgICAgIG0yID0gcmUubWF0Y2gociJeKFthLXpBLVpfXSspIiwgcmF3KQogICAgICAgIGlmIG0yIGFuZCBtMi5ncm91cCgxKSAhPSAiaW5wdXQiOgogICAgICAgICAgICByYXcgPSAiICAiICsgcmF3CiAgICAgICAgICAgIGNoYW5nZWQgPSBUcnVlCiAgICBmaXhlZC5hcHBlbmQocmF3ICsgIlxuIikKc3JjID0gIiIuam9pbihmaXhlZCkKCiMgRml4IDI6IGFkZCBzdW1tYXJpc2UgdG8gcm91dGluZyBibG9jayBpbiBjb25maWcueWFtbCBpZiBpdCBoYXMgYSByb3V0aW5nIHNlY3Rpb24KaWYgInJvdXRpbmc6IiBpbiBzcmMgYW5kICJzdW1tYXJpc2U6IiBub3QgaW4gc3JjOgogICAgc3JjID0gcmUuc3ViKAogICAgICAgIHIiKGZhY3RfZXh0cmFjdDouKj8oPzpwcmVmZXJyZWR8ZmFsbGJhY2spLio/XG4pIiwKICAgICAgICBsYW1iZGEgbTogbS5ncm91cCgwKSArICIgICAgc3VtbWFyaXNlOlxuICAgICAgcHJlZmVycmVkOiBcImdlbWluaS9nZW1pbmktMi41LWZsYXNoXCJcbiAgICAgIGZhbGxiYWNrOiBbXCJncm9xL2xsYW1hLTMuMy03MGItdmVyc2F0aWxlXCIsIFwib2xsYW1hL2dlbW1hMzo0YlwiXVxuIiwKICAgICAgICBzcmMsIGNvdW50PTEKICAgICkKICAgIGNoYW5nZWQgPSBUcnVlCiAgICBwcmludCgiICArIHN1bW1hcmlzZSByb3V0ZSBhZGRlZCB0byBjb25maWcueWFtbCByb3V0aW5nIGJsb2NrIikKCiMgRml4IDM6IGVuc3VyZSB0YXNrX3RpbWVvdXRzIGhhcyBmYWN0X2V4dHJhY3Q6IDE4MAppZiAidGFza190aW1lb3V0czoiIGluIHNyYzoKICAgIGlmICJmYWN0X2V4dHJhY3Q6IiBub3QgaW4gc3JjLnNwbGl0KCJ0YXNrX3RpbWVvdXRzOiIpWzFdLnNwbGl0KCJcblxuIilbMF06CiAgICAgICAgc3JjID0gcmUuc3ViKAogICAgICAgICAgICByIih0YXNrX3RpbWVvdXRzOi4qPykoXG5bYS16QS1aXSkiLAogICAgICAgICAgICBsYW1iZGEgbTogbS5ncm91cCgxKSArICJcbiAgICBmYWN0X2V4dHJhY3Q6IDE4MCIgKyBtLmdyb3VwKDIpLAogICAgICAgICAgICBzcmMsIGNvdW50PTEsIGZsYWdzPXJlLkRPVEFMTAogICAgICAgICkKICAgICAgICBjaGFuZ2VkID0gVHJ1ZQogICAgICAgIHByaW50KCIgICsgZmFjdF9leHRyYWN0OiAxODAgYWRkZWQgdG8gdGFza190aW1lb3V0cyBpbiBjb25maWcueWFtbCIpCgpvcGVuKHBhdGgsICJ3Iikud3JpdGUoc3JjKQoKdHJ5OgogICAgeWFtbC5zYWZlX2xvYWQob3BlbihwYXRoKSkKICAgIHByaW50KCIgIGNvbmZpZy55YW1sIHZhbGlkLiIpCmV4Y2VwdCB5YW1sLllBTUxFcnJvciBhcyBlOgogICAgcHJpbnQoZiIgIFdBUk5JTkcg4oCUIGNvbmZpZy55YW1sIHN0aWxsIGludmFsaWQ6IHtlfSIpCiAgICBwcmludCgiICBSdW46IHNlZCAtbiBcJzM1LDQ1cFwnIH4vLnBzaWUvY29uZmlnLnlhbWwgfCBjYXQgLUEgIHRvIGluc3BlY3QiKQo=' | base64 -d | python3 - "$EIDOLON_VAULT_CONFIG"
 info "Lines 35-48 after fix:"
-sed -n '35,48p' "$PSIE_CONFIG"
+sed -n '35,48p' "$EIDOLON_VAULT_CONFIG"
 ok "config.yaml patched."
 
 # ── Patch D: agent_personas.yaml — add C++ Tutor ─────────────────────────────
@@ -93,7 +93,7 @@ fi
 
 # ── Verify all patches ────────────────────────────────────────────────────────
 banner "=== Verification ==="
-echo 'CmltcG9ydCBzeXMsIHJlCgpwc2llX2RpciAgICAgPSBzeXMuYXJndlsxXQpjb25maWdfcHkgICAgPSBzeXMuYXJndlsyXQppbnB1dF9wYXJzZXIgPSBzeXMuYXJndlszXQoKZXJyb3JzID0gW10KCiMgMS4gY29uZmlnLnB5IGhhcyBzdW1tYXJpc2Ugcm91dGUKc3JjID0gb3Blbihjb25maWdfcHkpLnJlYWQoKQppZiAnInN1bW1hcmlzZSInIGluIHNyYzoKICAgIHByaW50KCIgIOKckyAgY29uZmlnLnB5OiBzdW1tYXJpc2Ugcm91dGUgcHJlc2VudCIpCmVsc2U6CiAgICBlcnJvcnMuYXBwZW5kKCJjb25maWcucHk6IHN1bW1hcmlzZSByb3V0ZSBtaXNzaW5nIikKCiMgMi4gY29uZmlnLnB5IGhhcyBmYWN0X2V4dHJhY3QgdGltZW91dAppZiAnImZhY3RfZXh0cmFjdCInIGluIHNyYy5zcGxpdCgnInRhc2tfdGltZW91dHMiJylbMV0gaWYgJyJ0YXNrX3RpbWVvdXRzIicgaW4gc3JjIGVsc2UgRmFsc2U6CiAgICBwcmludCgiICDinJMgIGNvbmZpZy5weTogZmFjdF9leHRyYWN0IHRpbWVvdXQgcHJlc2VudCIpCmVsc2U6CiAgICBlcnJvcnMuYXBwZW5kKCJjb25maWcucHk6IGZhY3RfZXh0cmFjdCB0aW1lb3V0IG5vdCBmb3VuZCBpbiB0YXNrX3RpbWVvdXRzIikKCiMgMy4gaW5wdXRfcGFyc2VyIFNTTCBmaXgKaXBfc3JjID0gb3BlbihpbnB1dF9wYXJzZXIpLnJlYWQoKQppZiAiY3VycmVudF91cmwsIiBpbiBpcF9zcmMgYW5kICJJUCBhZGRyZXNzIG1pc21hdGNoIiBpbiBpcF9zcmM6CiAgICBwcmludCgiICDinJMgIGlucHV0X3BhcnNlci5weTogU1NMIGZpeCBhcHBsaWVkIikKZWxpZiAicGlubmVkX3VybCwiIGluIGlwX3NyYzoKICAgIGVycm9ycy5hcHBlbmQoImlucHV0X3BhcnNlci5weTogU1NMIGJ1ZyBzdGlsbCBwcmVzZW50IChzdGlsbCB1c2luZyBwaW5uZWRfdXJsKSIpCmVsc2U6CiAgICBlcnJvcnMuYXBwZW5kKCJpbnB1dF9wYXJzZXIucHk6IGNhbm5vdCB2ZXJpZnkgU1NMIGZpeCBzdGF0ZSIpCgojIDQuIFB5dGhvbiBpbXBvcnQgY2hlY2sKc3lzLnBhdGguaW5zZXJ0KDAsIHBzaWVfZGlyKQpmb3IgbW9kIGluIFsicHNpZS5mZWVkZXIiLCAicHNpZS5rbm93bGVkZ2Vfd29ya2VyIiwgInBzaWUubWVtb3J5X2NvbnNvbGlkYXRvciJdOgogICAgdHJ5OgogICAgICAgIF9faW1wb3J0X18obW9kKQogICAgICAgIHByaW50KGYiICBcdTI3MTMgIHttb2R9IikKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBlcnJvcnMuYXBwZW5kKGYie21vZH06IHtlfSIpCgppZiBlcnJvcnM6CiAgICBwcmludCgiXG5Jc3N1ZXMgZm91bmQ6IikKICAgIGZvciBlIGluIGVycm9yczogcHJpbnQoZiIgIOKclyAge2V9IikKICAgIHN5cy5leGl0KDEpCg==' | base64 -d | python3 - "$PSIE_DIR" "$CONFIG_PY" "$INPUT_PARSER"
+echo 'CmltcG9ydCBzeXMsIHJlCgpwc2llX2RpciAgICAgPSBzeXMuYXJndlsxXQpjb25maWdfcHkgICAgPSBzeXMuYXJndlsyXQppbnB1dF9wYXJzZXIgPSBzeXMuYXJndlszXQoKZXJyb3JzID0gW10KCiMgMS4gY29uZmlnLnB5IGhhcyBzdW1tYXJpc2Ugcm91dGUKc3JjID0gb3Blbihjb25maWdfcHkpLnJlYWQoKQppZiAnInN1bW1hcmlzZSInIGluIHNyYzoKICAgIHByaW50KCIgIOKckyAgY29uZmlnLnB5OiBzdW1tYXJpc2Ugcm91dGUgcHJlc2VudCIpCmVsc2U6CiAgICBlcnJvcnMuYXBwZW5kKCJjb25maWcucHk6IHN1bW1hcmlzZSByb3V0ZSBtaXNzaW5nIikKCiMgMi4gY29uZmlnLnB5IGhhcyBmYWN0X2V4dHJhY3QgdGltZW91dAppZiAnImZhY3RfZXh0cmFjdCInIGluIHNyYy5zcGxpdCgnInRhc2tfdGltZW91dHMiJylbMV0gaWYgJyJ0YXNrX3RpbWVvdXRzIicgaW4gc3JjIGVsc2UgRmFsc2U6CiAgICBwcmludCgiICDinJMgIGNvbmZpZy5weTogZmFjdF9leHRyYWN0IHRpbWVvdXQgcHJlc2VudCIpCmVsc2U6CiAgICBlcnJvcnMuYXBwZW5kKCJjb25maWcucHk6IGZhY3RfZXh0cmFjdCB0aW1lb3V0IG5vdCBmb3VuZCBpbiB0YXNrX3RpbWVvdXRzIikKCiMgMy4gaW5wdXRfcGFyc2VyIFNTTCBmaXgKaXBfc3JjID0gb3BlbihpbnB1dF9wYXJzZXIpLnJlYWQoKQppZiAiY3VycmVudF91cmwsIiBpbiBpcF9zcmMgYW5kICJJUCBhZGRyZXNzIG1pc21hdGNoIiBpbiBpcF9zcmM6CiAgICBwcmludCgiICDinJMgIGlucHV0X3BhcnNlci5weTogU1NMIGZpeCBhcHBsaWVkIikKZWxpZiAicGlubmVkX3VybCwiIGluIGlwX3NyYzoKICAgIGVycm9ycy5hcHBlbmQoImlucHV0X3BhcnNlci5weTogU1NMIGJ1ZyBzdGlsbCBwcmVzZW50IChzdGlsbCB1c2luZyBwaW5uZWRfdXJsKSIpCmVsc2U6CiAgICBlcnJvcnMuYXBwZW5kKCJpbnB1dF9wYXJzZXIucHk6IGNhbm5vdCB2ZXJpZnkgU1NMIGZpeCBzdGF0ZSIpCgojIDQuIFB5dGhvbiBpbXBvcnQgY2hlY2sKc3lzLnBhdGguaW5zZXJ0KDAsIHBzaWVfZGlyKQpmb3IgbW9kIGluIFsicHNpZS5mZWVkZXIiLCAicHNpZS5rbm93bGVkZ2Vfd29ya2VyIiwgInBzaWUubWVtb3J5X2NvbnNvbGlkYXRvciJdOgogICAgdHJ5OgogICAgICAgIF9faW1wb3J0X18obW9kKQogICAgICAgIHByaW50KGYiICBcdTI3MTMgIHttb2R9IikKICAgIGV4Y2VwdCBFeGNlcHRpb24gYXMgZToKICAgICAgICBlcnJvcnMuYXBwZW5kKGYie21vZH06IHtlfSIpCgppZiBlcnJvcnM6CiAgICBwcmludCgiXG5Jc3N1ZXMgZm91bmQ6IikKICAgIGZvciBlIGluIGVycm9yczogcHJpbnQoZiIgIOKclyAge2V9IikKICAgIHN5cy5leGl0KDEpCg==' | base64 -d | python3 - "$EIDOLON_VAULT_DIR" "$CONFIG_PY" "$INPUT_PARSER"
 ok "All patches verified."
 
 # ── Show final routing table ──────────────────────────────────────────────────
@@ -117,11 +117,11 @@ if m:
 PYEOF
 
 # ── Quick smoke test ──────────────────────────────────────────────────────────
-banner "=== Smoke test: psie learn (text, no network) ==="
+banner "=== Smoke test: eidolon-vault learn (text, no network) ==="
 info "Running a minimal 2-turn text-based learn to verify the full pipeline..."
 echo ""
 set +e
-psie learn --text "An embedded systems engineer is evaluating RFSoC versus discrete FPGA+DSP designs for a radar signal processing application." --turns 2
+eidolon-vault learn --text "An embedded systems engineer is evaluating RFSoC versus discrete FPGA+DSP designs for a radar signal processing application." --turns 2
 LEARN_EXIT=$?
 set -e
 echo ""
@@ -131,13 +131,13 @@ else
     warn "Smoke test exited ${LEARN_EXIT} — check LLM backend availability."
 fi
 
-banner "=== psie status ==="
-psie status || true
+banner "=== eidolon-vault status ==="
+eidolon-vault status || true
 
 echo ""
 ok "All review fixes applied. Summary:"
 echo "  A. config.py    — summarise route (gemini-2.5-flash), fact_extract timeout 180s"
-echo "  B. input_parser — SSL fix: psie run --url no longer gets IP address mismatch"
+echo "  B. input_parser — SSL fix: eidolon-vault run --url no longer gets IP address mismatch"
 echo "  C. config.yaml  — indentation fixed, summarise route, fact_extract timeout"
 echo "  D. personas     — C++ Tutor added (archetype: cpp_tutor)"
 echo ""

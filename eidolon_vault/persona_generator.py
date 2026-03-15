@@ -1,5 +1,5 @@
 """
-PSIE — Persona Generator
+Eidolon Vault — Persona Generator
 =========================
 Turns knowledge‑graph entities into fully‑fleshed ``AgentPersona`` objects.
 """
@@ -15,7 +15,7 @@ import networkx as nx
 
 from .models import AgentPersona, GraphEntity
 from .utils import safe_parse_json, clamp, sanitise_injected_text
-from .exceptions import PSIEError
+from .exceptions import EidolonVaultError
 
 if TYPE_CHECKING:
     from .llm_gateway import LLMGateway
@@ -95,7 +95,7 @@ class PersonaGenerator:
         try:
             raw = self.gateway.complete("persona_generate", messages, json_mode=True)
         except Exception as e:
-            raise PSIEError(f"Persona generation failed for {entity.name}: {e}") from e
+            raise EidolonVaultError(f"Persona generation failed for {entity.name}: {e}") from e
 
         data = safe_parse_json(raw)
 
