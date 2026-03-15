@@ -21,21 +21,29 @@ class Agent:
     def think(self, prompt: str):
         """
         Process a thought or interaction using the LLM and memory context.
+        Uses hybrid retrieval: Recent (SQLite) + Semantic (ChromaDB).
         """
-        # Retrieve recent memories for contextual continuity
-        memories = self.persistence.get_recent_memories(limit=5)
-        context = "\n".join(memories)
+        # Retrieve context for continuity
+        recent_memories = self.persistence.get_recent_memories(limit=3)
+        semantic_memories = self.persistence.search_memories(prompt, n_results=3)
         
-        system_prompt = f"You are {self.name}, a {self.role}. Previous memory:\n{context}"
+        # Combine and deduplicate if necessary (simple union for now)
+        all_context = list(dict.fromkeys(recent_memories + semantic_memories))
+        context_str = "\n".join(all_context)
+        
+        system_prompt = (
+            f"You are {self.name}, a {self.role}.\n"
+            f"Relevant Context from Vault:\n{context_str}"
+        )
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ]
         
-        # Call the LLM (using agent_action as the task type)
+        # Call the LLM
         response = self.gateway.complete("agent_action", messages)
         
-        # Step 3: Save memory using persistence
+        # Save memory
         self.persistence.save_memory(f"Thought: {prompt}\nResponse: {response}")
         
         print(f"[{self.name}] {response}")

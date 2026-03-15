@@ -3,6 +3,7 @@ import os
 import hashlib
 from pathlib import Path
 import chromadb
+from chromadb.config import Settings
 from sqlalchemy import create_engine, text
 
 class EidolonMemory:
@@ -29,8 +30,11 @@ class EidolonMemory:
             ))
             conn.commit()
 
-        # Step 2: Ensure ChromaDB collection exists
-        self.vector_client = chromadb.PersistentClient(path="data/chroma")
+        # Step 2: Ensure ChromaDB collection exists (Optimized for old hardware)
+        self.vector_client = chromadb.PersistentClient(
+            path="data/chroma",
+            settings=Settings(anonymized_telemetry=False)
+        )
         self.collection = self.vector_client.get_or_create_collection(name=agent_id)
 
     def save_memory(self, text_content: str, metadata: dict = None):
@@ -47,17 +51,11 @@ class EidolonMemory:
 
         # Save to ChromaDB for vector retrieval
         mem_id = hashlib.md5(text_content.encode("utf-8")).hexdigest()
-        if metadata:
-            self.collection.add(
-                documents=[text_content], 
-                metadatas=[metadata], 
-                ids=[mem_id]
-            )
-        else:
-            self.collection.add(
-                documents=[text_content], 
-                ids=[mem_id]
-            )
+        self.collection.add(
+            documents=[text_content],
+            metadatas=[metadata] if metadata else [{}],
+            ids=[mem_id]
+        )
 
     def get_recent_memories(self, limit: int = 20):
         """
@@ -69,3 +67,13 @@ class EidolonMemory:
                 {"limit": limit}
             )
             return [row[0] for row in result]
+
+    def search_memories(self, query_text: str, n_results: int = 5):
+        """
+        Retrieve semantically relevant memories from ChromaDB.
+        """
+        results = self.collection.query(
+            query_texts=[query_text],
+            n_results=n_results
+        )
+        return results["documents"][0] if results["documents"] else []
