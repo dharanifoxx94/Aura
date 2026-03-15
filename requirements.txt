@@ -9,3 +9,9 @@ beautifulsoup4
 pypdf
 chromadb
 sqlalchemy
+click
+networkx
+litellm
+trafilatura
+pdfplumber
+requests

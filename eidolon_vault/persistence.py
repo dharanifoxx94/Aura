@@ -51,11 +51,13 @@ class EidolonMemory:
 
         # Save to ChromaDB for vector retrieval
         mem_id = hashlib.md5(text_content.encode("utf-8")).hexdigest()
-        self.collection.add(
-            documents=[text_content],
-            metadatas=[metadata] if metadata else [{}],
-            ids=[mem_id]
-        )
+        add_kwargs = {
+            "documents": [text_content],
+            "ids": [mem_id]
+        }
+        if metadata:
+            add_kwargs["metadatas"] = [metadata]
+        self.collection.add(**add_kwargs)
 
     def get_recent_memories(self, limit: int = 20):
         """
