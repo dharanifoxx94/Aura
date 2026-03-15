@@ -211,7 +211,7 @@ class ReportGenerator:
         ]
 
         try:
-            raw = self.gateway.complete(
+            raw, _tokens = self.gateway.complete(
                 "report_generate", messages,
                 # max_tokens intentionally omitted — controlled by
                 # task_max_tokens.report_generate in config.yaml

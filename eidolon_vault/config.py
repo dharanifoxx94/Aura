@@ -63,12 +63,15 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "skill_extract":    1024,
             "fact_extract":     1024,
             "summarise":       512,
+            "consolidate":     512,
         },
         # Per-task timeout overrides in seconds (inherits request_timeout if absent).
         "task_timeouts": {
             "agent_action":    120,
             "fact_extract":    180,
             "report_generate": 180,
+            "summarise":       60,
+            "consolidate":     120,
         },
     },
     "simulation": {

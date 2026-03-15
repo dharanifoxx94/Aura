@@ -344,7 +344,7 @@ class MemoryStore:
 
         try:
             # Use dedicated task type "fact_extract"
-            raw = gateway.complete("fact_extract", messages, json_mode=True)
+            raw, _tokens = gateway.complete("fact_extract", messages, json_mode=True)
             data = safe_parse_json(raw, fallback={"facts": []})
             facts = [f for f in data.get("facts", []) if isinstance(f, dict)]
             if facts:

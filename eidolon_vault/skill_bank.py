@@ -263,7 +263,7 @@ class SkillBank:
         ]
 
         try:
-            raw = gateway.complete("skill_extract", messages, json_mode=True)
+            raw, _tokens = gateway.complete("skill_extract", messages, json_mode=True)
         except Exception as e:
             logger.warning("Skill extraction failed: %s", e)
             return []

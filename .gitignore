@@ -1,5 +1,5 @@
 # Secrets & config (may contain API keys)
-config.yaml
+*config*.yaml
 *.yaml.bak
 .env
 
@@ -15,10 +15,10 @@ psie-env/
 venv/
 .venv/
 
-# PSIE runtime data (relative paths — tilde doesn't work in gitignore)
-psie_reports/
+# Eidolon Vault runtime data (relative paths — tilde doesn't work in gitignore)
+eidolon_vault_reports/
 *.db
-.psie/
+.eidolon_vault/
 
 # Logs
 *.log

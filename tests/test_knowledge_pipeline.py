@@ -117,7 +117,7 @@ class TestContentFeeder:
             ],
         )
         monkeypatch.setattr("feedparser.parse", lambda _: fake_feed)
-        mock_gateway.complete.return_value = "Condensed scenario about chips."
+        mock_gateway.complete.return_value = ("Condensed scenario about chips.", 100)
 
         from eidolon_vault.feeder import ContentFeeder
         feeder = ContentFeeder(gateway=mock_gateway)
@@ -307,9 +307,9 @@ class TestMemoryConsolidator:
             ("hash1", "Bob", "birthdate", "1980-01-01", 0.9, "run1"),
             ("hash1", "Bob", "birthdate", "1990-06-15", 0.5, "run2"),
         ])
-        mock_gateway.complete.return_value = json.dumps(
+        mock_gateway.complete.return_value = (json.dumps(
             {"contradictions": [{"id_to_delete": 2, "reason": "Lower confidence", "keep_id": 1}]}
-        )
+        ), 150)
         mc = MemoryConsolidator(minimal_cfg, mock_gateway)
         suggestions = mc.find_contradictions("hash1", dry_run=True)
 

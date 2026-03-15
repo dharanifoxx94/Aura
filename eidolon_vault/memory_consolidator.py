@@ -171,6 +171,7 @@ class MemoryConsolidator:
         Return quick statistics about the facts table.
         """
         with db_connect(self.db_path) as conn:
+            scenario_hash_count = 0
             if scenario_hash:
                 total = conn.execute(
                     "SELECT COUNT(*) FROM facts WHERE scenario_hash = ?",
@@ -268,16 +269,15 @@ class MemoryConsolidator:
         ]
 
         try:
-            raw = self.gateway.complete(
-                "fact_extract",
+            raw, _tokens = self.gateway.complete(
+                "consolidate",
                 messages,
                 max_tokens=300,
                 temperature=0.1,
                 json_mode=True,
             )
             # Handle both tuple (mock) and str (real gateway) returns
-            text = raw[0] if isinstance(raw, tuple) else raw
-            data = safe_parse_json(text, fallback={"contradictions": []})
+            data = safe_parse_json(raw, fallback={"contradictions": []})
             contradictions: List[Dict[str, Any]] = data.get("contradictions", [])
         except Exception as exc:
             logger.warning(

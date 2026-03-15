@@ -382,6 +382,9 @@ input:
     click.echo("  3. Run: eidolon_vault run --text 'Your scenario here' --type job_hunt")
 
 
+from eidolon_vault import cli_extension
+
+
 def main() -> None:
     cli()
 

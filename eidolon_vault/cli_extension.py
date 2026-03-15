@@ -106,7 +106,7 @@ def learn(
     try:
         if file:
             from eidolon_vault.feeder import ingest
-            ctx = ingest(file, source_type="text", title=title, cfg=cfg)
+            ctx = ingest(file, source_type="auto", title=title, cfg=cfg)
         elif url:
             from eidolon_vault.feeder import ingest
             ctx = ingest(url, source_type="url", title=title, gateway=engine.gateway, cfg=cfg)

@@ -203,14 +203,14 @@ class ContentFeeder:
             },
         ]
         try:
-            result = self.gateway.complete(
+            result, _tokens = self.gateway.complete(
                 "summarise",
                 messages,
                 max_tokens=400,
                 temperature=0.4,
             )
-            # gateway.complete() returns a plain string
-            text = result.strip() if isinstance(result, str) else result[0].strip()
+            # gateway.complete() returns (content: str, tokens: int)
+            text = result.strip() if isinstance(result, str) else result.strip()
             logger.debug("LLM condensed %d items into %d chars", len(item_texts), len(text))
             return text or "\n\n".join(item_texts)
         except Exception as exc:
@@ -351,7 +351,7 @@ def _fetch_url_ssrf_safe(
     headers = {"User-Agent": "Mozilla/5.0 (Eidolon Vault/1.4; +https://github.com/eidolon_vault)"}
 
     try:
-        resp = session.get(url, headers=headers, timeout=timeout_s, stream=True)
+        resp = session.get(url, headers=headers, timeout=timeout_s, stream=True, allow_redirects=False)
         resp.raise_for_status()
     except requests.exceptions.SSLError as exc:
         raise InputError(f"SSL error fetching '{url}': {exc}") from exc
