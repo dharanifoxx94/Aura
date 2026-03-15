@@ -21,8 +21,24 @@ litellm.suppress_debug_info = True   # prevent api_key= leaking in --verbose log
 from .constants import DEFAULT_LLM_TIMEOUT
 from .exceptions import LLMError
 from .db import db_connect
+from .providers.ollama import OllamaProvider
 
 logger = logging.getLogger(__name__)
+
+def get_llm_provider(provider_name: str, model: str = None):
+    provider_name = provider_name.lower().strip()
+    
+    if provider_name == "ollama":
+        return OllamaProvider(model or "llama3.2:3b")
+    elif provider_name == "gemini":
+        # Note: In this project, Gemini is normally handled via LiteLLM in LLMGateway.
+        # This is a placeholder as requested by the audit directives.
+        return None
+    elif provider_name == "groq":
+        # Placeholder as requested by the audit directives.
+        return None
+    else:
+        raise ValueError(f"Unknown provider: {provider_name}")
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -163,6 +179,19 @@ class LLMGateway:
         """
         route = self.routing.get(task_type) or self.routing.get("agent_action", {})
         chain: List[str] = [route["preferred"]] + list(route.get("fallback", []))
+
+        # Respect global provider/model override from CLI or config
+        global_provider = self.cfg["llm"].get("provider")
+        global_model = self.cfg["llm"].get("model")
+        if global_provider:
+            m = global_model or "llama3.2:3b"
+            backend_str = f"{global_provider}/{m}"
+            if backend_str not in chain:
+                chain = [backend_str] + chain
+            else:
+                # Move to front if already in chain
+                chain.remove(backend_str)
+                chain.insert(0, backend_str)
 
         if self.sensitive_mode:
             chain = [b for b in chain if b.startswith("ollama/")]
@@ -339,6 +368,24 @@ class LLMGateway:
         timeout: Optional[int] = None,
     ) -> Tuple[str, int]:
         eff_timeout = timeout if timeout is not None else self.request_timeout
+        provider, model = backend.split("/", 1) if "/" in backend else ("ollama", backend)
+
+        if provider == "ollama":
+            try:
+                p = get_llm_provider("ollama", model)
+                if p:
+                    # Extract prompt and system_prompt from messages for OllamaProvider.generate
+                    system_prompt = next((m["content"] for m in messages if m["role"] == "system"), None)
+                    user_prompt = "\n".join(m["content"] for m in messages if m["role"] == "user")
+                    
+                    # Note: OllamaProvider.generate is non-streaming.
+                    content = p.generate(user_prompt, system_prompt=system_prompt, temperature=temperature)
+                    actual_tokens = max(1, len(content) // 4)
+                    return content, actual_tokens
+            except Exception as e:
+                logger.warning("OllamaProvider failed, falling back to LiteLLM/HTTP: %s", e)
+                # Fall through to LiteLLM/HTTP if OllamaProvider fails.
+
         # Only fallback to raw HTTP if litellm is not installed AND it's ollama
         if "litellm" not in sys.modules:
              # This is a very unlikely case if installed via pip, but kept for robustness

@@ -52,6 +52,8 @@ def cli(verbose: bool, json_log: bool) -> None:
 @click.option("--turns",           default=None, type=click.IntRange(min=1), help="Number of simulation turns")
 @click.option("--agents",          default=None, type=click.IntRange(min=2, max=12), help="Max agents (2–12)")
 @click.option("--title",           default="", help="Optional scenario title")
+@click.option("--provider",        default=None, help="LLM provider (e.g. ollama, gemini, groq)")
+@click.option("--model",           default=None, help="LLM model name")
 @click.option("--sensitive",       is_flag=True, help="Force local‑only inference (privacy mode)")
 @click.option("--config",          default=None, type=click.Path(), help="Path to config.yaml")
 @click.option("--quiet",     "-q", is_flag=True, help="Suppress progress output")
@@ -64,6 +66,8 @@ def run(
     turns: int | None,
     agents: int | None,
     title: str,
+    provider: str | None,
+    model: str | None,
     sensitive: bool,
     config: str | None,
     quiet: bool,
@@ -97,6 +101,11 @@ def run(
     except EidolonVaultError as e:
         click.echo(f"Configuration error: {e}", err=True)
         sys.exit(1)
+
+    if provider:
+        cfg["llm"]["provider"] = provider
+    if model:
+        cfg["llm"]["model"] = model
 
     if sensitive:
         cfg["simulation"]["sensitive_mode"] = True
@@ -331,6 +340,8 @@ def init() -> None:
 # Edit API keys here or set them as environment variables.
 
 llm:
+  provider: ollama
+  model: llama3.2:3b
   providers:
     ollama:
       base_url: "http://localhost:11434"

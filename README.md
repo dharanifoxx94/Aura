@@ -17,6 +17,7 @@ Eidolon Vault is a high-performance framework for orchestrating **autonomous age
 
 - **🧠 Cognitive Persistence**: Agents maintain history and evolve their strategies over time.
 - **🎭 Persona Architecture**: Define rich, nuanced agent profiles using YAML.
+- **🏠 Local-First**: 100% offline support using Ollama for maximum privacy.
 - **🌐 LLM Agnostic**: Seamlessly switch between Gemini, Groq, and OpenRouter.
 - **🛠️ Tool-Ready**: Built-in support for web scraping, PDF parsing, and knowledge graphs.
 - **📊 Insightful Reporting**: Generates detailed post-simulation analysis and trajectory maps.
@@ -37,16 +38,25 @@ pip install -e ".[dev]"
 
 ## 🚦 Quick Start
 
-1. **Configure API Keys**
+1. **Configure API Keys** (optional for Ollama)
    ```bash
    export GEMINI_API_KEY="your-key-here"
    # or
    export GROQ_API_KEY="your-key-here"
    ```
 
-2. **Run a Simulation**
+2. **Run a Simulation (Cloud)**
    ```bash
    eidolon-vault run
+   ```
+
+3. **Run a Simulation (Local Ollama)**
+   ```bash
+   # Pull a model first
+   ollama pull llama3.2:3b
+   
+   # Run with local provider
+   eidolon-vault run --provider ollama --model llama3.2:3b --text "Your scenario here"
    ```
 
 ## 📂 Project Structure
