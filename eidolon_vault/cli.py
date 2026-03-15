@@ -327,10 +327,13 @@ def demo() -> None:
 @click.option("--days", default=10, help="Number of simulated days")
 def demo_consciousness(days: int) -> None:
     """Run the consciousness debate demo."""
-    # Importing inside the function as requested
-    from demo.consciousness_debate import run_consciousness_debate
-    click.echo(f"Starting consciousness debate demo for {days} days...")
-    run_consciousness_debate(days=days)
+    try:
+        from demo.consciousness_debate import run_consciousness_debate
+        click.echo(f"Starting consciousness debate demo for {days} days...")
+        run_consciousness_debate(days=days)
+    except ImportError:
+        click.echo("Error: Could not find the demo module. Ensure the 'demo/' folder is present.", err=True)
+        sys.exit(1)
 
 
 def main() -> None:
