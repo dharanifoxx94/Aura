@@ -5,7 +5,7 @@ from typing import Dict, Any, Generator
 class OllamaProvider:
     """Local-first provider using Ollama. Perfect for offline use on old hardware."""
 
-    def __init__(self, model: str = "llama3.2:3b"):
+    def __init__(self, model: str = "gemma3:4b"):
         self.model = model
         # Ensure model is pulled silently on first run
         try:

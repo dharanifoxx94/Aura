@@ -59,6 +59,23 @@ pip install -e ".[dev]"
    eidolon-vault run --provider ollama --model llama3.2:3b --text "Your scenario here"
    ```
 
+## 🚀 Local-First Mode (Ollama)
+```bash
+eidolon-vault run --provider ollama --model llama3.2:3b
+```
+
+## 🧠 Persistence & Memory
+Agents now have long-term memory using SQLite + ChromaDB.
+
+## 🎭 Demo: Consciousness Debate
+```bash
+eidolon-vault demo consciousness
+```
+Runs 10 simulated days of debate and generates a trajectory report.
+
+## Performance on Old Hardware
+Tested on 2015 Dell E5450 (i5-5300U, 16GB RAM) — runs smoothly with gemma2:2b or llama3.2:3b.
+
 ## 📂 Project Structure
 
 - `eidolon-vault/` - Core engine logic and agent controllers.

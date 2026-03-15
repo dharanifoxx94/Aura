@@ -4,6 +4,8 @@ tqdm
 google-generativeai
 groq
 openai
-ollama>=0.4.0 # Local-first support
+ollama>=0.4.0
 beautifulsoup4
 pypdf
+chromadb
+sqlalchemy

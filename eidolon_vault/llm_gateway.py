@@ -29,7 +29,7 @@ def get_llm_provider(provider_name: str, model: str = None):
     provider_name = provider_name.lower().strip()
     
     if provider_name == "ollama":
-        return OllamaProvider(model or "llama3.2:3b")
+        return OllamaProvider(model or "gemma3:4b")
     elif provider_name == "gemini":
         # Note: In this project, Gemini is normally handled via LiteLLM in LLMGateway.
         # This is a placeholder as requested by the audit directives.
@@ -184,7 +184,7 @@ class LLMGateway:
         global_provider = self.cfg["llm"].get("provider")
         global_model = self.cfg["llm"].get("model")
         if global_provider:
-            m = global_model or "llama3.2:3b"
+            m = global_model or "gemma3:4b"
             backend_str = f"{global_provider}/{m}"
             if backend_str not in chain:
                 chain = [backend_str] + chain

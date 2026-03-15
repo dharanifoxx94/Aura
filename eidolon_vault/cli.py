@@ -393,6 +393,23 @@ input:
     click.echo("  3. Run: eidolon_vault run --text 'Your scenario here' --type job_hunt")
 
 
+# ──────────────────────────────────────────────────────────────
+# eidolon_vault demo
+# ──────────────────────────────────────────────────────────────
+
+@cli.group()
+def demo() -> None:
+    """Run built-in demos."""
+
+@demo.command(name="consciousness")
+@click.option("--days", default=10, help="Number of simulated days")
+def demo_consciousness(days: int) -> None:
+    """Run the consciousness debate demo."""
+    from demo.consciousness_debate import run_consciousness_debate
+    click.echo(f"Starting consciousness debate demo for {days} days...")
+    run_consciousness_debate(days=days)
+
+
 from eidolon_vault import cli_extension
 
 

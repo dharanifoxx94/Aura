@@ -33,7 +33,7 @@ def _default_config_path() -> Path:
 DEFAULT_CONFIG: Dict[str, Any] = {
     "llm": {
         "provider": "ollama",
-        "model": "llama3.2:3b",
+        "model": "gemma3:4b",
         "routing": {
             "graph_build":      {"preferred": "groq/llama-3.3-70b-versatile",  "fallback": ["gemini/gemini-2.5-flash", "ollama/gemma3:4b"]},
             "persona_generate": {"preferred": "groq/llama-3.3-70b-versatile",  "fallback": ["gemini/gemini-2.5-flash", "ollama/gemma3:4b"]},
