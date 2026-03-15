@@ -1,0 +1,18 @@
+# PSIE v1.4.1 — Core Dependencies
+click>=8.1.7,<9
+networkx>=3.2.1,<4
+pyyaml>=6.0.1,<7
+litellm>=1.44.2
+trafilatura>=1.8.2
+pdfplumber>=0.11.0
+pypdf>=4.2.0
+requests>=2.32.3
+
+# Optional: .docx support
+# python-docx>=1.1.2
+
+# Dev / testing
+# pytest>=8.0.2
+# pytest-cov>=4.1.0
+# ruff>=0.3.5
+# mypy>=1.9.0

@@ -1,0 +1,13 @@
+
+llm:
+  routing:
+    graph_build:      {"preferred": "ollama/qwen2.5:3b",  "fallback": ["ollama/gemma3:4b"]}
+    persona_generate: {"preferred": "ollama/qwen2.5:3b",  "fallback": ["ollama/gemma3:4b"]}
+    agent_action:     {"preferred": "ollama/gemma3:4b",  "fallback": ["ollama/qwen2.5:3b"]}
+    report_generate:  {"preferred": "ollama/gemma3:4b",  "fallback": ["ollama/qwen2.5:3b"]}
+    skill_extract:    {"preferred": "ollama/qwen2.5:3b",  "fallback": []}
+    fact_extract:     {"preferred": "ollama/qwen2.5:3b",  "fallback": []}
+    summarise:        {"preferred": "ollama/qwen2.5:3b",  "fallback": []}
+  retry_attempts: 1
+  retry_delay_s: 1.0
+  request_timeout: 180

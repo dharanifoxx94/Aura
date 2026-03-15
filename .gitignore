@@ -1,0 +1,24 @@
+# Secrets & config (may contain API keys)
+config.yaml
+*.yaml.bak
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+psie-env/
+venv/
+.venv/
+
+# PSIE runtime data (relative paths — tilde doesn't work in gitignore)
+psie_reports/
+*.db
+.psie/
+
+# Logs
+*.log
