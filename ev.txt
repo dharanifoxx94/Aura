@@ -1,0 +1,263 @@
+🔍 Eidolon Vault — Deep Code Audit ReportA) Executive SummaryOverall Status: Partially Runs / Will Not Run cleanly from a fresh install.The engine and main simulation pipeline are structurally solid, but there are 5 critical blockers that will crash the project before a user gets any output.Top 5 Critical Blockers
+providers/ has no __init__.py — from eidolon_vault.providers.ollama import OllamaProvider will silently fail on some Python toolchain versions. Confirmed eidolon_vault/providers/ contains only ollama.py.
+
+OllamaProvider.__init__ calls ollama.pull() on every instantiation (providers/ollama.py, line 10). This makes a network request (and blocks!) every single time LLMGateway._call_backend() is invoked, even mid-simulation. On the E5450 with no internet, this will either freeze or fail noisily.
+
+persistence.py uses bare "data/" CWD-relative paths (lines 18–22). EidolonMemory("agent") creates ./data/agent.db and ./data/chroma/ relative to wherever Python was invoked from. When run via CLI (e.g., from /home/dharani), the data folder is created there — but the binary data files committed under data/chroma/ in the repo will be invisible. The data/ folder is also not in .gitignore (only chroma/ is, without the data/ prefix), so these ChromaDB binaries were accidentally committed.
+
+cli.py's demo consciousness command uses from demo.consciousness_debate import ... (line 331). This import will fail with ModuleNotFoundError unless the user runs the CLI from the repo root and demo/ is a proper package with __init__.py. The demo/consciousness_debate.py itself does sys.path.append(...) to hack around this — but that hack only works for direct execution (python demo/consciousness_debate.py), not for the CLI invocation path.
+
+pyproject.toml is missing critical runtime dependencies that are in requirements.txt but absent from the installable package: chromadb, sqlalchemy, rich, ollama, google-generativeai, groq, openai, beautifulsoup4. A fresh pip install . will not install these, causing ImportError at runtime.
+Quick Wins (< 15 minutes each)
+Add eidolon_vault/providers/__init__.py (empty file, 10 seconds)
+Add demo/__init__.py (empty file, 10 seconds)
+Move OllamaProvider.pull() call out of __init__, lazy-check it only on first real generate() call
+Fix .gitignore to include data/ (not just chroma/)
+Add missing deps to pyproject.toml
+B) Repo MapEidolon-Vault-main/
+├── pyproject.toml              ← packaging + entry points
+├── requirements.txt            ← manual deps list (mismatches pyproject.toml)
+├── local_config.yaml           ← user's Ollama-only config override
+├── README.md                   ← docs (minor inaccuracies)
+├── data/chroma/                ← ❌ binary ChromaDB data COMMITTED to git
+├── demo/
+│   ├── consciousness_debate.py ← demo runner (has sys.path hack)
+│   └── README.md
+├── tests/
+│   ├── conftest.py             ← well-written fixtures (isolated home, singleton reset)
+│   ├── test_config.py          ← thorough config tests
+│   └── test_knowledge_pipeline.py ← integration tests
+└── eidolon_vault/
+    ├── __init__.py             ← imports EidolonVaultEngine at top-level (heavyweight)
+    ├── __main__.py             ← python -m eidolon_vault support
+    ├── cli.py                  ← Click CLI (main entry point)
+    ├── cli_extension.py        ← extra learn/status commands (not wired to entry point)
+    ├── config.py               ← layered config, singleton, env overrides ✅ well done
+    ├── constants.py            ← ALLOWED_SCENARIO_TYPES (has "summarise" — mismatch)
+    ├── core.py                 ← Agent class (uses persistence.py — legacy parallel path)
+    ├── db.py                   ← SQLite context manager ✅
+    ├── engine.py               ← main orchestrator ✅
+    ├── exceptions.py           ← exception hierarchy ✅
+    ├── feeder.py               ← RSS/URL/text ingestion
+    ├── graph_builder.py        ← NX graph + LLM extraction
+    ├── input_parser.py         ← SSRF-protected URL fetch ✅
+    ├── knowledge_worker.py     ← ingestion orchestrator
+    ├── llm_gateway.py          ← provider router, circuit breaker ✅ mostly
+    ├── log.py                  ← JSON logging with redaction ✅
+    ├── memory_consolidator.py  ← contradiction pruning utility
+    ├── memory_store.py         ← SQLite FTS5 episodic+semantic memory ✅
+    ├── models.py               ← dataclasses ✅
+    ├── persistence.py          ← EidolonMemory (legacy, CWD-relative bug)
+    ├── persona_generator.py    ← LLM persona synthesis
+    ├── report_generator.py     ← report render/save
+    ├── simulation_runner.py    ← multi-agent loop
+    ├── skill_bank.py           ← FTS5 skill store ✅
+    ├── utils.py                ← JSON parse, sanitise, FTS ✅ (has SyntaxWarning)
+    ├── agent_personas.yaml     ← static persona YAML for knowledge_worker
+    └── providers/
+        ├── [NO __init__.py]    ← ❌ missing
+        └── ollama.py           ← OllamaProvider (blocks on pull every call)C) File-by-File Deep Auditpyproject.tomlWhat it does: Declares the installable package, entry points, and dependencies.Bugs:The [project].dependencies list is missing all of these packages that are imported at runtime:Missing from pyproject.tomlImported inchromadbpersistence.pysqlalchemypersistence.pyrich(likely simulation_runner.py / display)ollama>=0.4.0providers/ollama.pygoogle-generativeai(via litellm, but direct import possible)beautifulsoup4input_parser.py (bs4)feedparserfeeder.py (optional but not even in [feeds] in pyproject)python-dotenvconfig.py (try/except import)Fix — patch pyproject.toml dependencies:tomldependencies = [
+    "click>=8.1.7,<9",
+    "networkx>=3.2.1,<4",
+    "pyyaml>=6.0.1,<7",
+    "litellm>=1.44.2,<2.0",
+    "trafilatura>=1.8.2",
+    "pdfplumber>=0.11.0",
+    "pypdf>=4.2.0",
+    "requests>=2.32.3",
+    # ── added ──
+    "chromadb>=0.5.0",
+    "sqlalchemy>=2.0",
+    "rich>=13.0",
+    "ollama>=0.4.0",
+    "beautifulsoup4>=4.12",
+]
+
+[project.optional-dependencies]
+feeds  = ["feedparser>=6.0.10"]
+dotenv = ["python-dotenv>=1.0.0"]
+full   = [
+    "python-docx>=1.1.2",
+    "feedparser>=6.0.10",
+    "python-dotenv>=1.0.0",
+]eidolon_vault/providers/ — missing __init__.pyBug: The providers/ sub-package has no __init__.py. While modern Python allows namespace packages, some tool configurations (setuptools find with include = ["eidolon_vault*"]) may not pick it up reliably.Fix:
+bashtouch eidolon_vault/providers/__init__.pyeidolon_vault/providers/ollama.pyWhat it does: Wraps the ollama Python SDK for local LLM calls.Bug 1 — Blocking network call on every gateway instantiation (Critical):python# Line 10–13 — CURRENT (bad):
+def __init__(self, model: str = "gemma3:4b"):
+    self.model = model
+    try:
+        ollama.pull(self.model)   # ← blocks! called on EVERY LLMGateway._call_backend()
+    except Exception:
+        passLLMGateway._call_backend() creates a new OllamaProvider(model) on every single LLM call. So ollama.pull() is called once per agent turn per simulation. On the E5450 without internet, this blocks for a timeout on every call. Even with internet it's wasteful.Fix:pythondef __init__(self, model: str = "gemma3:4b"):
+    self.model = model
+    self._pulled = False   # lazy-pull on first generate()
+
+def _ensure_pulled(self) -> None:
+    if not self._pulled:
+        try:
+            ollama.pull(self.model)
+        except Exception:
+            pass
+        self._pulled = True
+
+def generate(self, prompt: str, system_prompt: str = None, temperature: float = 0.7) -> str:
+    self._ensure_pulled()
+    # ... rest unchangedBut actually: the correct fix is even simpler — remove ollama.pull() entirely. If the model isn't pulled, Ollama itself will give a clear error. Users should run ollama pull <model> manually as documented. The silent pass already swallows all errors anyway.Bug 2 — generate() type annotation for system_prompt:pythondef generate(self, prompt: str, system_prompt: str = None, ...) # should be Optional[str]Minor: will cause mypy failures. Fix:pythonfrom typing import Optional, Generator
+def generate(self, prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.7) -> str:eidolon_vault/persistence.pyWhat it does: EidolonMemory — SQLite + ChromaDB persistence for the Agent in core.py.Bug 1 — CWD-relative paths (Critical):python# Lines 18–22 — CURRENT (bad):
+os.makedirs("data", exist_ok=True)
+self.db_path = Path("data") / f"{agent_id}.db"
+# ...
+self.vector_client = chromadb.PersistentClient(path="data/chroma", ...)"data" is relative to whatever the current working directory is when Python runs. This means:
+
+Running from /home/dharani creates /home/dharani/data/
+Running from ~/Eidolon-Vault creates ~/Eidolon-Vault/data/
+Tests create data/ under the test runner's CWD
+This is inconsistent with the rest of the codebase (engine, memory_store, skill_bank all use ~/.eidolon_vault/ paths via config).Fix:pythonimport os
+from pathlib import Path
+
+_DEFAULT_DATA_DIR = Path.home() / ".eidolon_vault" / "legacy_memory"
+
+class EidolonMemory:
+    def __init__(self, agent_id: str, data_dir: Path | None = None):
+        self.agent_id = agent_id
+        base = data_dir or _DEFAULT_DATA_DIR
+        base.mkdir(parents=True, exist_ok=True)
+
+        self.db_path = base / f"{agent_id}.db"
+        self.engine = create_engine(f"sqlite:///{self.db_path}")
+        # ... rest of __init__
+
+        chroma_path = str(base / "chroma")
+        self.vector_client = chromadb.PersistentClient(
+            path=chroma_path,
+            settings=Settings(anonymized_telemetry=False)
+        )Bug 2 — data/chroma/ binary files committed to git:The repo ships with actual ChromaDB segment files (data_level0.bin, header.bin, etc.) from someone's development run. These are your private agent memories committed to a public repo. The .gitignore lists chroma/ but this rule only works for untracked files — once committed they stay.Fix:
+bash# Remove from git tracking (keep local files)
+git rm -r --cached data/
+echo "data/" >> .gitignore
+git commit -m "Remove committed ChromaDB data files from tracking"Bug 3 — search_memories will crash when ChromaDB collection is empty:pythonresults = self.collection.query(query_texts=[query_text], n_results=n_results)When the collection has fewer than n_results documents (including zero), ChromaDB raises chromadb.errors.InvalidArgumentError: n_results X is greater than number of elements in index (Y). There's no guard.Fix:pythondef search_memories(self, query_text: str, n_results: int = 5) -> list:
+    count = self.collection.count()
+    if count == 0:
+        return []
+    safe_n = min(n_results, count)
+    results = self.collection.query(query_texts=[query_text], n_results=safe_n)
+    return results["documents"][0] if results["documents"] else []eidolon_vault/core.pyWhat it does: The Agent class — calls EidolonMemory + LLMGateway.Bug 1 — get_config() called without arguments inside __init__:python# Line 14:
+cfg = get_config()
+self.gateway = LLMGateway(cfg)This invokes the config singleton. If the user hasn't run eidolon-vault init, get_config() still works (returns defaults), but it creates LLMGateway which then calls _init_cost_db() → tries to create ~/.eidolon_vault/eidolon_vault_usage.db. This is fine but undocumented.Bug 2 — core.py's Agent is a parallel, disconnected system from the main engine.py pipeline:engine.py uses AgentPersona + SimulationRunner + MemoryStore. core.py uses Agent + EidolonMemory. The demo uses core.py. The CLI run command uses engine.py. These are two separate architectures that don't share data. A user running the demo and then running a simulation will have zero cross-pollination of memories.This isn't a crash bug, but it's a significant architectural inconsistency that should be documented clearly.Bug 3 — Silent logic error in think() — deduplication destroys ordering:pythonall_context = list(dict.fromkeys(recent_memories + semantic_memories))dict.fromkeys() deduplicates by keeping the first occurrence. Since recent memories come first, semantic memories that duplicate recent ones are dropped. This is fine. But if semantic memories are more relevant, they may be wrongly de-prioritised. Minor, but a logic smell.eidolon_vault/cli.py — demo consciousness commandWhat it does: Routes eidolon-vault demo consciousness to the demo module.Bug — Import will fail when called via installed CLI (Critical):python# Lines 330–331:
+from demo.consciousness_debate import run_consciousness_debateWhen the user runs eidolon-vault demo consciousness from any directory other than the repo root, Python cannot find demo as a top-level package. The sys.path.append(...) in consciousness_debate.py itself only runs when that file is executed directly, not when it's imported.Fix Option A (minimal): Use importlib with the file path:python@demo.command(name="consciousness")
+@click.option("--days", default=10, help="Number of simulated days")
+def demo_consciousness(days: int) -> None:
+    """Run the consciousness debate demo."""
+    import importlib.util, sys
+    from pathlib import Path
+
+    # Find demo relative to this package file
+    demo_path = Path(__file__).parent.parent / "demo" / "consciousness_debate.py"
+    if not demo_path.exists():
+        click.echo(
+            "Error: demo/consciousness_debate.py not found.\n"
+            "Run this command from the Eidolon-Vault repo root, "
+            "or copy the demo/ folder alongside your installation.",
+            err=True
+        )
+        sys.exit(1)
+
+    spec = importlib.util.spec_from_file_location("consciousness_debate", demo_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    click.echo(f"Starting consciousness debate demo for {days} days...")
+    mod.run_consciousness_debate(days=days)Fix Option B (clean): Add demo/__init__.py and add demo to pyproject.toml as an included package, then the relative import works:toml# pyproject.toml
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["eidolon_vault*", "demo*"]bashtouch demo/__init__.pyeidolon_vault/constants.py — ALLOWED_SCENARIO_TYPES mismatchBug:constants.py includes "summarise" in ALLOWED_SCENARIO_TYPES:pythonALLOWED_SCENARIO_TYPES = {
+    "job_hunt", "business_decision", "negotiation",
+    "relationship", "general",
+    "summarise",   # ← exists here
+}But cli.py's SCENARIO_TYPES list (used in --type Click choice) is:pythonSCENARIO_TYPES = ["job_hunt", "business_decision", "negotiation", "relationship", "general"]
+# "summarise" is MISSINGIf any internal code passes scenario_type="summarise" (e.g. from skill_bank.extract_from_log calling gateway.complete("summarise", ...)), it passes validation — but the CLI will reject it as an invalid choice. These two lists must be kept in sync.Fix: Remove "summarise" from ALLOWED_SCENARIO_TYPES (it's an LLM task type, not a scenario type) OR add it to CLI choices if it's intentional:python# constants.py — clean separation
+ALLOWED_SCENARIO_TYPES = {
+    "job_hunt", "business_decision", "negotiation", "relationship", "general",
+}
+# LLM task types are separate — no need to validate them against scenario typeseidolon_vault/__init__.py — Heavy top-level importBug:pythonfrom .engine import EidolonVaultEngine   # imports ALL of engine, llm_gateway, litellm, etc.import eidolon_vault (which happens even for eidolon-vault --help) triggers the full import chain: engine → llm_gateway → import litellm (slow, ~300ms). If litellm isn't installed, even --help crashes.Fix: Use lazy import:python# eidolon_vault/__init__.py
+__version__ = "1.4.1"
+__all__ = ["EidolonVaultEngine"]
+
+def __getattr__(name):
+    if name == "EidolonVaultEngine":
+        from .engine import EidolonVaultEngine
+        return EidolonVaultEngine
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")eidolon_vault/utils.py — SyntaxWarningBug (Minor):The module-level docstring contains \{ and \} in a raw string that Python 3.12+ flags:SyntaxWarning: invalid escape sequence '\{'Fix: Use a raw docstring or double-escape:pythonr"""
+...
+  FIX-1  safe_parse_json: replaced greedy re.DOTALL brace regex with a
+         brace-counting scanner.  The old r"\{.*\}" with re.DOTALL is
+...
+"""eidolon_vault/llm_gateway.py — _call_with_heartbeat type annotationBug (Minor):pythondef _call_with_heartbeat(
+    self,
+    fn: Callable[[], Tuple[str, int]],   # ← Tuple not imported from typing at top
+    ...Tuple is imported via from typing import ... Tuple — check: yes it is. Fine. But there's a lambda closure bug:python# Lines 235–241 — current:
+_backend_fn = lambda: self._call_backend(
+    backend, messages, ...
+)
+if progress_callback:
+    result, actual_tokens = self._call_with_heartbeat(
+        _backend_fn, cb=progress_callback
+    )
+else:
+    result, actual_tokens = _backend_fn()The lambda captures backend, messages, etc. by reference in a loop. In this specific loop, backend changes each iteration, but since _backend_fn is consumed immediately (not stored for later), the closure reference is fine. No bug here — just noting it looks risky.eidolon_vault/cli_extension.py — Not wired to entry pointBug (Silent):cli_extension.py adds learn, learn-feed, and status commands to the CLI group. But it's never imported by the entry point or __main__.py. These commands don't exist in the installed binary.python# cli_extension.py line 35:
+from eidolon_vault.cli import cli, SCENARIO_TYPESFix: Either wire it into cli.py:python# At the bottom of cli.py, after all @cli.command() definitions:
+try:
+    import eidolon_vault.cli_extension  # noqa: F401  registers learn/status commands
+except ImportError:
+    passOr add a second entry point in pyproject.toml (not recommended — same binary should expose all commands)..gitignore — Data dir not excludedBug:gitignore# Current:
+chroma/      ← only matches a top-level "chroma/" dir, not "data/chroma/"
+*.db         ← excludes SQLite files, but NOT the ChromaDB binary segment filesThe ChromaDB data under data/chroma/ (4 .bin files + chroma.sqlite3) are tracked in git despite containing runtime data. .db gitignore rule catches chroma.sqlite3 only if it's not already tracked.Fix:gitignore# Add to .gitignore:
+data/README.md inaccuracies
+Line 50: eidolon-vault run without arguments drops into stdin-read mode — the README implies it "runs a simulation" without clarifying this.
+
+Line 75: eidolon-vault run --provider ollama --model llama3.2:3b — correct syntax.
+
+Line 91: eidolon-vault demo consciousness — correct, and now documented in cli.py. But the README doesn't mention that this requires running from the repo root (until Bug C4 is fixed above).
+
+"Performance on Old Hardware" section recommends gemma2:2b or llama3.2:3b but local_config.yaml uses qwen2.5:3b and gemma3:4b. README and config are out of sync. The default pyproject.toml / DEFAULT_CONFIG uses gemma3:4b. Fine for 16GB RAM, but worth noting explicitly.
+D) Installation & Runtime Verification Planbash# 1. Fresh venv
+python3.10 -m venv .venv && source .venv/bin/activate
+
+# 2. Install with all deps (after fixing pyproject.toml)
+pip install -e ".[full]"
+
+# 3. Smoke: help should print without crashing
+eidolon-vault --help
+eidolon-vault run --help
+
+# 4. Init
+eidolon-vault init
+
+# 5. Start Ollama and pull model
+ollama serve &
+ollama pull gemma3:4b   # or qwen2.5:3b for speed
+
+# 6. Run minimal simulation
+eidolon-vault run \
+  --text "Alice (job seeker) is interviewing at BankCorp with Bob (hiring manager)" \
+  --type job_hunt --turns 3 --agents 2
+
+# 7. Verify DB artifact created
+ls ~/.eidolon_vault/eidolon_vault_memory.db   # should exist
+ls ~/.eidolon_vault/eidolon_vault_skills.db   # should exist
+
+# 8. Verify memory recall works
+eidolon-vault history
+
+# 9. Run the demo (after fixing import bug)
+eidolon-vault demo consciousness --days 3
+
+# 10. Verify trajectory report written
+ls demo/trajectory_report.md
+
+# 11. Run tests
+pytest tests/ -v --tb=shortE) Minimal Patch Set — Apply In This OrderOrder and what each patch does:#FileChangeTime1eidolon_vault/providers/__init__.pyCreate empty file10s2demo/__init__.pyCreate empty file10s3pyproject.tomlAdd missing deps (chromadb, sqlalchemy, rich, ollama, bs4)5 min4eidolon_vault/providers/ollama.pyRemove ollama.pull() from __init__2 min5eidolon_vault/persistence.pyUse ~/.eidolon_vault/legacy_memory/ instead of "data/"5 min6eidolon_vault/persistence.pyGuard search_memories against empty collection2 min7eidolon_vault/cli.pyFix demo consciousness import with importlib.util5 min8eidolon_vault/constants.pyRemove "summarise" from ALLOWED_SCENARIO_TYPES1 min9eidolon_vault/__init__.pyLazy import of EidolonVaultEngine3 min10eidolon_vault/utils.pyFix docstring escape sequences (raw string)1 min11.gitignoreAdd data/30s12git rm -r --cached data/Remove committed binary files2 min13eidolon_vault/cli.pyImport cli_extension at bottom of file1 minF) Optional Improvements (non-breaking)Architecture:
+
+core.py / Agent + EidolonMemory is a legacy parallel system. Consider deprecating it in favor of the engine.py pipeline, or connecting them (pass a MemoryStore reference into Agent).
+persistence.py uses chromadb directly with no embedding model specified — ChromaDB defaults to all-MiniLM-L6-v2 which downloads ~85MB on first run. For offline E5450 use, explicitly set a local embedding function or disable embeddings and use keyword-only retrieval.
+Old Hardware (E5450 specific):
+
+ChromaDB's default embedding model download on first run can be avoided by passing embedding_function=chromadb.utils.embedding_functions.DefaultEmbeddingFunction() or by using SQLite FTS5 only

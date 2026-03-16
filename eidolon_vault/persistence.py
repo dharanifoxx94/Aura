@@ -5,6 +5,9 @@ from pathlib import Path
 import chromadb
 from chromadb.config import Settings
 from sqlalchemy import create_engine, text
+from chromadb.errors import InvalidArgumentError
+
+_DEFAULT_DATA_DIR = Path.home() / ".eidolon_vault" / "legacy_memory"
 
 class EidolonMemory:
     """
@@ -12,12 +15,12 @@ class EidolonMemory:
     Ensures that long-term 'consciousness' is stored locally.
     """
 
-    def __init__(self, agent_id: str):
+    def __init__(self, agent_id: str, data_dir: Path | None = None):
         self.agent_id = agent_id
-        # Step 6: Ensure data/ folder creation
-        os.makedirs("data", exist_ok=True)
-        
-        self.db_path = Path("data") / f"{agent_id}.db"
+        base = data_dir or _DEFAULT_DATA_DIR
+        base.mkdir(parents=True, exist_ok=True)
+
+        self.db_path = base / f"{agent_id}.db"
         self.engine = create_engine(f"sqlite:///{self.db_path}")
 
         # Step 2: Ensure table exists
@@ -31,8 +34,9 @@ class EidolonMemory:
             conn.commit()
 
         # Step 2: Ensure ChromaDB collection exists (Optimized for old hardware)
+        chroma_path = str(base / "chroma")
         self.vector_client = chromadb.PersistentClient(
-            path="data/chroma",
+            path=chroma_path,
             settings=Settings(anonymized_telemetry=False)
         )
         self.collection = self.vector_client.get_or_create_collection(name=agent_id)
@@ -70,12 +74,19 @@ class EidolonMemory:
             )
             return [row[0] for row in result]
 
-    def search_memories(self, query_text: str, n_results: int = 5):
+    def search_memories(self, query_text: str, n_results: int = 5) -> list:
         """
         Retrieve semantically relevant memories from ChromaDB.
         """
-        results = self.collection.query(
-            query_texts=[query_text],
-            n_results=n_results
-        )
-        return results["documents"][0] if results["documents"] else []
+        count = self.collection.count()
+        if count == 0:
+            return []
+        safe_n = min(n_results, count)
+        try:
+            results = self.collection.query(
+                query_texts=[query_text],
+                n_results=safe_n
+            )
+            return results["documents"][0] if results["documents"] else []
+        except InvalidArgumentError:
+            return []

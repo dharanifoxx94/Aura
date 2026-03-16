@@ -11,7 +11,6 @@ ALLOWED_SCENARIO_TYPES = {
     "negotiation",
     "relationship",
     "general",
-    "summarise",
 }
 
 # Default LLM request timeout (seconds)

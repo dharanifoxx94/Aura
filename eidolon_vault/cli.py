@@ -327,13 +327,32 @@ def demo() -> None:
 @click.option("--days", default=10, help="Number of simulated days")
 def demo_consciousness(days: int) -> None:
     """Run the consciousness debate demo."""
-    try:
-        from demo.consciousness_debate import run_consciousness_debate
-        click.echo(f"Starting consciousness debate demo for {days} days...")
-        run_consciousness_debate(days=days)
-    except ImportError:
-        click.echo("Error: Could not find the demo module. Ensure the 'demo/' folder is present.", err=True)
+    import importlib.util, sys
+    from pathlib import Path
+
+    # Find demo relative to this package file
+    demo_path = Path(__file__).parent.parent / "demo" / "consciousness_debate.py"
+    if not demo_path.exists():
+        click.echo(
+            "Error: demo/consciousness_debate.py not found.\n"
+            "Run this command from the Eidolon-Vault repo root, "
+            "or copy the demo/ folder alongside your installation.",
+            err=True
+        )
         sys.exit(1)
+
+    spec = importlib.util.spec_from_file_location("consciousness_debate", demo_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    click.echo(f"Starting consciousness debate demo for {days} days...")
+    mod.run_consciousness_debate(days=days)
+
+
+
+try:
+    import eidolon_vault.cli_extension  # noqa: F401
+except ImportError:
+    pass
 
 
 def main() -> None:

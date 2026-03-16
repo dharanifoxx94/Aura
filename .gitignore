@@ -16,6 +16,7 @@ venv/
 .venv/
 
 # Eidolon Vault runtime data (relative paths — tilde doesn't work in gitignore)
+data/
 eidolon_vault_reports/
 *.db
 .eidolon_vault/

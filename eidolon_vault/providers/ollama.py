@@ -1,19 +1,14 @@
 # eidolon_vault/providers/ollama.py
 import ollama
-from typing import Dict, Any, Generator
+from typing import Dict, Any, Generator, Optional
 
 class OllamaProvider:
     """Local-first provider using Ollama. Perfect for offline use on old hardware."""
 
     def __init__(self, model: str = "gemma3:4b"):
         self.model = model
-        # Ensure model is pulled silently on first run
-        try:
-            ollama.pull(self.model)
-        except Exception:
-            pass # Already exists or network issue
 
-    def generate(self, prompt: str, system_prompt: str = None, temperature: float = 0.7) -> str:
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.7) -> str:
         """Single response (non-streaming)"""
         messages = []
         if system_prompt:
